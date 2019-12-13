@@ -1,0 +1,1 @@
+INSERT INTO events (name, shortdescription) VALUES ('TEST', 'Þetta er test');
