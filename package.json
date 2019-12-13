@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node app.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon app.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "setup": "node ./js/database/setup.js"
   },
   "repository": {
     "type": "git",
@@ -18,9 +20,14 @@
   },
   "homepage": "https://github.com/Skeggis/ChiroTixServer#readme",
   "dependencies": {
+    "cloudinary": "^1.18.1",
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
+    "moment": "^2.24.0",
+    "multer": "^1.4.2",
     "nodemon": "^2.0.2",
-    "pg": "^7.14.0"
+    "pg": "^7.14.0",
+    "validator": "^12.1.0",
+    "xss": "^1.0.6"
   }
 }

@@ -22,16 +22,19 @@ async function main() {
   console.info(`Initializing database on ${connectionString}`);
 
   // drop tables if exists
-  await query('DROP TABLE IF EXISTS events');
-
+  await query('DROP TABLE IF EXISTS locations, events');
 
   console.info('Tables deleted');
 
   // create tables from schemas
   try {
-    const events = await readFileAsync('./sql/events/events.sql');
+    const locations = await readFileAsync('./sql/locations.sql');
+    const events = await readFileAsync('./sql/events.sql');
 
+
+    await query(locations.toString('utf8'));
     await query(events.toString('utf8'));
+
 
     console.info('Tables created');
   } catch (e) {
@@ -41,6 +44,8 @@ async function main() {
 
   // insert data into tables
   try {
+    const insert = await readFileAsync('./sql/insert.sql');
+    await query(insert.toString('utf8'))
 
     console.info('Data inserted');
   } catch (e) {

@@ -2,6 +2,7 @@
  * This module hosts common database functions, e.g. run a query.
  */
 
+ 
 
 const { Client } = require('pg');
 
