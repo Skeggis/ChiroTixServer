@@ -59,7 +59,7 @@ async function insertTicketTypes(tickets){
  *                  }    
  */
 async function buyTickets(eventId, buyerId, tickets, buyerInfo){
-
+    
 }
 
 /**
