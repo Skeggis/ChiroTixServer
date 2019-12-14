@@ -153,9 +153,20 @@ async function getEventByIdDb(id) {
   return result
 }
 
+
+const {
+  EVENTS_DB
+} = process.env
+
+async function getEventsDb(){
+  return await query(`SELECT * FROM ${EVENTS_DB}`);
+}
+
+
+
 module.exports = {
   getEventsDb,
   insertEventDb,
   getEventByIdDb,
-  updateEventDb
+  updateEventDb,
 }

@@ -3,6 +3,7 @@ const {
 } = require('../helpers')
 
 function validateInsertEvent(event) {
+
   const errors = []
 
   if (typeof event.name !== 'string') {
@@ -18,6 +19,7 @@ function validateInsertEvent(event) {
       message: 'Date must be valid'
     })
   }
+
 
   if(event.startSellingTime && (typeof event.startSellingTime === 'string' || !isValidDate(new Date(event.startSellingTime)))){
     errors.push({

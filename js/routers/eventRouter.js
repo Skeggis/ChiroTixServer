@@ -2,6 +2,7 @@ const express = require('express')
 const multer = require('multer')
 const router = express.Router()
 
+
 const { catchErrors } = require('../helpers')
 
 const {
@@ -27,6 +28,7 @@ const storage = multer.diskStorage({
     cb(null, file.originalname)
   }
 })
+
 
 async function getEventsRoute(req, res){
   const result = await getEvents()
@@ -150,11 +152,13 @@ async function uploadEventImageRoute(req, res){
     )
   })
 
+
 }
 
 router.get('/events', catchErrors(getEventsRoute))
 router.post('/events', catchErrors(insertEventRoute))
 router.patch('/events/:id', catchErrors(updateEventRoute))
 router.post('/eventImage', catchErrors(uploadEventImageRoute))
+
 
 module.exports = router

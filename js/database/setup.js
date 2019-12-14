@@ -20,6 +20,7 @@ const {
 } = process.env
 
 
+
 /**
  * Run all the sql scripts.
  */
@@ -50,6 +51,7 @@ async function main() {
   await query('DROP TABLE IF EXISTS locations, events, tickets, ticketsconnect');
 
 
+
   console.info('Tables deleted');
 
   // create tables from schemas
@@ -60,9 +62,11 @@ async function main() {
 
 
 
+
     await query(locations.toString('utf8'));
     await query(events.toString('utf8'));
     await query(tickets.toString('utf8'));
+
 
 
 

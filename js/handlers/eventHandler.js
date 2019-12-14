@@ -40,4 +40,5 @@ module.exports = {
   insertEvent,
   updateEvent,
   getEventById
+
 }
