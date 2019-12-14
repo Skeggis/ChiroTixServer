@@ -11,11 +11,11 @@ const {
 
 /**
  * 
- * @param {Array} tickets :{
+ * @param {Array} tickets :[{
  *                  price: Double,
  *                  name: String,
  *                  amount: Integer
- *          }
+ *          }]
  */
 async function insertTicketTypes(tickets){
     let success = false

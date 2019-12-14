@@ -5,5 +5,7 @@ CREATE TABLE tickets (
         amount integer not null,
         sold integer not null default 0,
         reserved integer not null default 0,
-        DATE timestamptz NOT NULL DEFAULT current_timestamp
+        DATE timestamptz NOT NULL DEFAULT current_timestamp,
+        eventid integer references events(id),
+        disabled boolean default false
     );
