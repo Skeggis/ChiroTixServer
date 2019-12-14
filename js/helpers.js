@@ -24,8 +24,13 @@ function errorHandler(err, req, res, next) {
   return res.status(500).json({ error: 'Internal server error' });
 }
 
+function isValidDate(d){
+  return d instanceof Date && !isNaN(d);
+}
+
 module.exports = {
   catchErrors,
   notFoundHandler,
-  errorHandler
+  errorHandler,
+  isValidDate
 }
