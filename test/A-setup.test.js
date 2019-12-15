@@ -46,7 +46,6 @@ describe('Setup ticketDB test environment', async () => {
         query = `insert into ${EVENTS_DB} (name, ticketstablename) values('Test', '${global.ticketsSoldTableName}') returning *`
         let result = await db.query(query)
         global.event = await formatter.eventFormatter(result.rows[0])
-        let eventId = result.rows[0].id
 
         query = `insert into ${TICKETS_TYPE_DB} (name, price, amount) values('Venjulegur', 333.333, 100) returning *`
         result = await db.query(query)
