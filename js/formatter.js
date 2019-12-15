@@ -35,7 +35,7 @@ async function formatTicket(ticket){
     }
 }
 
-async function eventFormatter(event){
+async function formatEvent(event){
     return{
         id: event.id,
         name: event.name,
@@ -50,4 +50,20 @@ async function eventFormatter(event){
     }
 }
 
-module.exports = {formatTicketType, formatTicketTypes, eventFormatter, formatTicket, formatTickets}
+async function formatTag(tag){
+    return{
+        id: tag.id,
+        tag: tag.tag
+    }
+}
+
+async function formatTags(tags){
+    let formattedTags = []
+    for(let i = 0 ; i < tags.length; i++){ formattedTags.push(tags[i])}
+    return formattedTags
+}
+
+
+
+module.exports = {formatTicketType, formatTicketTypes, formatEvent, formatTicket, formatTickets,
+                    formatTag, formatTags}

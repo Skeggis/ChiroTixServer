@@ -10,7 +10,6 @@ const readFileAsync = util.promisify(fs.readFile);
 
 const {
   EVENTS_DB,
-  TICKETS_CONNECT_DB,
   TICKETS_TYPE_DB
 } = process.env
 

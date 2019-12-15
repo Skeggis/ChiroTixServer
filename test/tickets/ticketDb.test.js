@@ -1,7 +1,7 @@
 require('dotenv').config()
-const ticketDB = require('../js/database/ticketDb')
+const ticketDB = require('../../js/database/ticketDb')
 const expect = require('chai').expect;
-const db = require('../js/database/db')
+const db = require('../../js/database/db')
 
 const {
     TICKETS_TYPE_DB
@@ -14,7 +14,7 @@ describe('TicketDb test', async () => {
     describe('GetTicketTypes', async () => {
         it(`should find a ticket of certain type`, async () => {
             let ticketTypes = await ticketDB.getTicketTypes([global.tickets[0].id])
-            expect(ticketTypes.length).to.be.equal(1)
+            expect(ticketTypes.length).to.equal(1)
             expect(ticketTypes[0].id).to.equal(global.tickets[0].id)
             expect(ticketTypes[0].name).to.equal(global.tickets[0].name)
         })
