@@ -48,7 +48,7 @@ async function main() {
   }
 
   // drop tables if exists
-  await query('DROP TABLE IF EXISTS locations, events, tickets, ticketsconnect');
+  await query('DROP TABLE IF EXISTS speakersconnect, speakers, events, locations, tickets');
 
 
 
@@ -59,6 +59,8 @@ async function main() {
     const locations = await readFileAsync('./sql/locations.sql');
     const events = await readFileAsync('./sql/events.sql');
     const tickets = await readFileAsync('./sql/ticketType.sql');
+    const speakers = await readFileAsync('./sql/speakers.sql');
+    const speakersConnect = await readFileAsync('./sql/speakersConnect.sql');
 
 
 
@@ -66,6 +68,8 @@ async function main() {
     await query(locations.toString('utf8'));
     await query(events.toString('utf8'));
     await query(tickets.toString('utf8'));
+    await query(speakers.toString('utf8'));
+    await query(speakersConnect.toString('utf8'));
 
 
 

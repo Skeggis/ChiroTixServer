@@ -2,7 +2,7 @@ const {
   query,
   getClient
 } = require('./db');
-
+const formatter = require('../formatter')
 const util = require('util');
 const fs = require('fs');
 const readFileAsync = util.promisify(fs.readFile);
@@ -10,8 +10,9 @@ const readFileAsync = util.promisify(fs.readFile);
 
 const {
   EVENTS_DB,
-  TICKETS_CONNECT_DB,
-  TICKETS_TYPE_DB
+  TICKETS_TYPE_DB,
+  SPEAKERS_DB,
+  SPEAKERS_CONNECT_DB
 } = process.env
 
 async function getEventsDb() {
@@ -27,16 +28,15 @@ async function insertEventDb(event) {
     image: event.image,
     locationid: event.locationId,
     longitude: event.longitude,
-    latitude: event.latitude,
+    latitude: event.latitude
   }
+  let speakers = event.speakers //[{name:String, id: Integer (iff speaker exists in our db)}]
   console.log(event)
 
   let success = false
   const client = await getClient()
   try {
     await client.query('BEGIN')
-
-
 
     const eventQuery = `INSERT INTO ${EVENTS_DB} (name, date, shortdescription, longdescription, image, locationid, longitude, latitude)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`
@@ -65,6 +65,34 @@ async function insertEventDb(event) {
     await client.query(`CREATE TABLE ${ticketsSoldTableName} ${soldTicketsTable.toString('utf8')}`)
 
     await client.query(`UPDATE ${EVENTS_DB} SET ticketstablename = '${ticketsSoldTableName}' WHERE id = ${eventRes.rows[0].id}`)
+
+    let newSpeakers = []
+    let insertNewSpeakersQuery = `insert into ${SPEAKERS_DB} (name) values`
+    let oldSpeakers = []
+    speakers.forEach((speaker,i) => {
+      if(speaker.id){oldSpeakers.push(speaker)}
+      else {
+        newSpeakers.push(speaker)
+        if(newSpeakers.length != 0) {insertNewSpeakersQuery+=","}
+        insertNewSpeakersQuery += ` ('${speaker.name}')`
+      }
+    })
+    
+    let theSpeakers = []
+    if(newSpeakers.length != 0){
+      let newSpeakersResult = await client.query(insertNewSpeakersQuery)
+      theSpeakers = await formatter.formatSpeakers(newSpeakersResult.rows)
+    }
+
+    let theSpeakers = oldSpeakers.concat(theSpeakers)
+
+    let connectSpeakersToEventQuery = `insert into ${SPEAKERS_CONNECT_DB} (eventid, speakerid) values`
+    theSpeakers.forEach((speaker, i) => {
+      if(i != 0) { connectSpeakersToEventQuery += ","}
+      else { connectSpeakersToEventQuery += ` (${eventRes.rows[0].id}, ${speaker.id})`}
+     })
+
+     await client.query(connectSpeakersToEventQuery)
 
     await client.query('COMMIT')
     success = true

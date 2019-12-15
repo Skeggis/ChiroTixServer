@@ -10,4 +10,17 @@ async function ticketTypeFormatter(ticket){
     }
 }
 
-module.exports = {ticketTypeFormatter}
+async function formatSpeaker(speaker){
+    return{
+        name: speaker.name,
+        id: speaker.id
+    }
+}
+
+async function formatSpeakers(speakers){
+    let newSpeakers = []
+    for(let i = 0; i < speakers.length; i++){newSpeakers.push(await formatSpeaker(speakers[i]))}
+    return newSpeakers
+}
+
+module.exports = {ticketTypeFormatter, formatSpeaker, formatSpeakers}
