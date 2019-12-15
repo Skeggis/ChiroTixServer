@@ -1,4 +1,5 @@
 const ticketDB = require('../database/ticketDb')
+const {SYSTEM_ERROR} = require('../Messages')
 
 /**
  * 
@@ -7,7 +8,7 @@ const ticketDB = require('../database/ticketDb')
  */
 async function releaseAllTicketsForBuyer({buyerId=-1, eventId=-1}){
     let success = await ticketDB.releaseAllTicketsForBuyer(buyerId, eventId)
-    if(!success){return {success: false, messages: [{type: "Error", message:"System error. Please try again later."}]}}
+    if(!success){return SYSTEM_ERROR}
     return {success:true}
 }
 
@@ -32,7 +33,7 @@ async function releaseTickets({buyerId=-1, eventId=-1, tickets=[]}){
 
     let reservedTickets = await ticketDB.getReservedTickets(reservedTicketIds, eventId, buyerId)
 
-    if(!reservedTickets || reservedTickets.length != reservedTicketIds.length){return {success: false, messages: [{type: "Error", message:"System error. Please try again later."}]} }
+    if(!reservedTickets || reservedTickets.length != reservedTicketIds.length){return SYSTEM_ERROR }
 
     let response = await ticketDB.releaseTickets(reservedTicketIds, ticketTypesAmount, eventId)
 
@@ -63,7 +64,7 @@ async function reserveTickets({buyerId=-1, eventId=-1, tickets=[]}){
 }
 
 async function checkForAvailableTickets(ticketTypes, tickets){
-    if(!ticketTypes[0]){ return {success: false, messages: [{type: "Error", message:"System error. Please try again later."}]} }
+    if(!ticketTypes[0]){ return SYSTEM_ERROR }
 
     let ticketsNotFound = []
     for(let j = 0; j < tickets.length; j++){
@@ -106,7 +107,7 @@ async function buyTickets({eventId=-1, buyerId=-1, tickets=[], buyerInfo={}}){
     //Check if this buyer has reserved the tickets he is trying to buy.
     let reservedTickets = await ticketDB.getAllReservedTicketsForBuyer(buyerId, eventId, tickets)
 
-    if(!( await ticketsReservedMatchBuyerTickets(reservedTickets, tickets) )) {return {success: false, messages:[{type: "Error", message:"System error. Please try again later."}]}}
+    if(!( await ticketsReservedMatchBuyerTickets(reservedTickets, tickets) )) {return SYSTEM_ERROR}
 
     let receipt = {} //Get from Borgun/Paypal. TODO: Paypal/Borgun
 

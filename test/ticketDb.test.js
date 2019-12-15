@@ -184,6 +184,33 @@ describe('TicketDb test', async () => {
         })
     })
 
+    describe('Release all tickets', async () => {
+        it('should reserve 10 tickets and release all', async () => {
+            let newBuyerId = "Manni"
+            let tickets = [{
+                ticketId: global.tickets[0].id,
+                amount: 10
+            }]
+
+            let response = await ticketDB.reserveTickets(global.event.id, newBuyerId, tickets)
+            expect(response.success).to.be.true
+            expect(response.reservedTickets.length).to.equal(10)
+
+            let result = await db.query(`select * from ${TICKETS_TYPE_DB} where id=${global.tickets[0].id}`)
+            expect(result.rows.length).to.be.equal(1)
+            expect(result.rows[0].sold).to.equal(4)
+            expect(result.rows[0].reserved).to.equal(13)
+
+            response = await ticketDB.releaseAllTicketsForBuyer(newBuyerId, global.event.id)
+            expect(response).to.be.true
+
+            result = await db.query(`select * from ${TICKETS_TYPE_DB} where id=${global.tickets[0].id}`)
+            expect(result.rows.length).to.be.equal(1)
+            expect(result.rows[0].sold).to.equal(4)
+            expect(result.rows[0].reserved).to.equal(3)
+        })
+    })
+
     describe('clean up DB tests', async () => {
         it('should clean up', async () => {
             query = `update ${TICKETS_TYPE_DB} set sold = 0, reserved = 0`

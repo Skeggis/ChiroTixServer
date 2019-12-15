@@ -209,6 +209,28 @@ describe('TicketHandler test', async () => {
         })
     })
 
+    describe('Release all Tickets', async () => {
+        it('should reserve 10 tickets and release all', async () => {
+            let newBuyerId = "Manni"
+            let data = {
+                tickets: [{
+                    ticketId: global.tickets[0].id,
+                    amount: 10
+                }],
+                eventId: global.event.id,
+                buyerId: newBuyerId
+            }
+            
+            let response = await ticketHandler.reserveTickets(data)
+            expect(response.success, "The tickets where not found").to.be.true
+            expect(response.reservedTickets.length).to.equal(10)
+
+            data.tickets = undefined
+            response = await ticketHandler.releaseAllTicketsForBuyer(data)
+            expect(response.success).to.be.true
+        })
+    })
+
 
 
 });

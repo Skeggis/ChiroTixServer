@@ -1,6 +1,7 @@
 require('dotenv').config();
 const db = require('./db');
 const formatter = require('../formatter')
+const {SYSTEM_ERROR} = require('../Messages')
 
 const {
     TICKETS_TYPE_DB,
@@ -74,7 +75,7 @@ async function buyTickets(eventId, buyerId, tickets, buyerInfo, receipt){
       } catch (e) {
         await client.query('ROLLBACK')
         console.log("BuyTickets error: ", e)
-        message.messages.push({type: "Error", message: "System error. Please try again later."})
+        message = SYSTEM_ERROR
       } finally {
         client.end()
       }
@@ -169,7 +170,7 @@ async function reserveTickets(eventId, buyerId, tickets){
       } catch (e) {
         await client.query('ROLLBACK')
         // console.log("ReserveTickets error: ", e)
-        message.messages.push({type: "Error", message: "System error. Please try again later."})
+        message = SYSTEM_ERROR
       } finally {
         client.end()
       }
@@ -256,7 +257,7 @@ async function releaseTickets(reservedTicketIds, ticketTypesAmount, eventId){
       } catch (e) {
         await client.query('ROLLBACK')
         // console.log("ReserveTickets error: ", e)
-        message.messages.push({type: "Error", message: "System error. Please try again later."})
+        message = SYSTEM_ERROR
       } finally {
         client.end()
       }
