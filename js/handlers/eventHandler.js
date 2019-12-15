@@ -2,7 +2,8 @@ const {
   getEventsDb,
   insertEventDb,
   updateEventDb,
-  getEventByIdDb
+  getEventByIdDb,
+  updateTicketsTypeDb
 } = require('../database/eventDb.js')
 
 async function getEvents() {
@@ -27,7 +28,25 @@ async function updateEvent(id, event, tickets){
   }
 
   const result = await updateEventDb(id, event)
-  return result
+  if(!result){
+    return {
+      success: false,
+      message: 'Something went wrong updating event'
+    }
+  }
+
+  const ticketResult = await updateTicketsTypeDb(id, tickets)
+  if(!ticketResult){
+    return {
+      success: false,
+      message: 'Something went wrong updating event'
+    }
+  }
+
+  return {
+    success: true,
+    message: 'Successfully updated event'
+  }
 }
 
 async function getEventById(id){

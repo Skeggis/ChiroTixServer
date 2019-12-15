@@ -110,12 +110,12 @@ async function updateEventRoute(req, res){
   if(errors.length > 0){
     return res.status(400).json(errors)
   }
-  const result = await updateEvent(id, updatedEvent)
-  if(result){
-    return res.status(200).json({message: 'Succefully updated event'})
+  const result = await updateEvent(id, updatedEvent, tickets)
+  if(result.success){
+    return res.status(200).json(result)
   }
 
-  return res.status(500).json({message: 'Something went wrong updating event'})
+  return res.status(500).json({success: false, message: 'Something went wrong updating event'})
 }
 
 async function uploadEventImageRoute(req, res){

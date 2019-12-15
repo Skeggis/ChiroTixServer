@@ -214,13 +214,13 @@ async function releaseAllTicketsForBuyer(buyerId, eventId){
         
         await client.query('COMMIT')
         success = true
-      } catch (e) {
+    } catch (e) {
         await client.query('ROLLBACK')
         // console.log("ReserveTickets error: ", e)
       } finally {
         client.end()
-      }
-      return success
+    }
+    return success
 }
 
 /**
