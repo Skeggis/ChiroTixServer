@@ -4,6 +4,17 @@ const ticketDB = require('../database/ticketDb')
  * 
  * @param {String} buyerId
  * @param {Integer} eventId
+ */
+async function releaseAllTicketsForBuyer({buyerId=-1, eventId=-1}){
+    let success = await ticketDB.releaseAllTicketsForBuyer(buyerId, eventId)
+    if(!success){return {success: false, messages: [{type: "Error", message:"System error. Please try again later."}]}}
+    return {success:true}
+}
+
+/**
+ * 
+ * @param {String} buyerId
+ * @param {Integer} eventId
  * @param {Array} tickets : [{
  *              ticketId: Integer,
  *              amount: Integer
@@ -131,4 +142,4 @@ async function ticketsReservedMatchBuyerTickets(reservedTickets, tickets){
 }
 
 
-module.exports = {reserveTickets, buyTickets, releaseTickets}
+module.exports = {reserveTickets, buyTickets, releaseTickets, releaseAllTicketsForBuyer}

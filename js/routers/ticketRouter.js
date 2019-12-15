@@ -1,6 +1,8 @@
 import { Router } from 'express'
 import ticketHandler from '../handlers/ticketHandler'
 
+const { catchErrors } = require('../helpers')
+
 const router = Router()
 /**
  * 
@@ -113,11 +115,34 @@ async function releaseTickets(req,res){
     res.json(response)
 }
 
-function catchErrors(fn) {
-    return (req, res, next) => fn(req, res, next).catch(next);
+/**
+ * 
+ * @param {Object} req.body: {
+ *                  eventId: Integer,
+ *                  buyerId: String
+ * }
+ */
+async function releaseAllTickets(req,res){
+    const {
+        body: {
+            buyerID = false,
+            eventID = false
+        }
+    } = req
+
+    if(!(buyerID && eventID )){ return res.status(400).json({error: "Invalid body request."}) }
+
+    const data = {
+        buyerID,
+        eventID
+    }
+
+    var response = await ticketHandler.releaseAllTicketsForBuyer(data)
+    res.json(response)
 }
 
 router.post('/reserveTickets', catchErrors(reserveTickets))
 router.post('/buyTickets', catchErrors(buyTickets))
 router.post('/releaseTickets', catchErrors(releaseTickets))
+router.post('/releaseAllTickets', catchErrors(releaseAllTickets))
 export default router

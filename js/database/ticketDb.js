@@ -176,6 +176,52 @@ async function reserveTickets(eventId, buyerId, tickets){
       return message
 }
 
+
+/**
+ * 
+ * @param {String} buyerId 
+ * @param {Integer} eventId
+ */
+async function releaseAllTicketsForBuyer(buyerId, eventId){
+    let success = false
+    let reservedTickets = await getAllReservedTicketsForBuyer(buyerId, eventId)
+
+    let reservedTicketTypesAmount = []
+    for(let i = 0; i < reservedTickets.length; i++){ 
+        let ticket = reservedTickets[i]
+        if(!reservedTicketTypesAmount[ticket.ticketId]) { reservedTicketTypesAmount[ticket.ticketId] = 1 }
+        else { reservedTicketTypesAmount[ticket.ticketId]++ }
+    }
+
+    const client = await db.getClient()
+    try {
+        let query = `Select * from ${EVENTS_DB} where id=${eventId}`
+        const getEventInfo = await client.query(query)
+        const eventTicketsTable = getEventInfo.rows[0].ticketstablename
+
+        await client.query('BEGIN')
+        query = `delete from ${eventTicketsTable} where buyerId='${buyerId}' and issold=false`
+        await client.query(query)
+
+        let ticketTypesIds = Object.keys(reservedTicketTypesAmount)
+        for(let i = 0; i < ticketTypesIds.length; i++){
+            let id = ticketTypesIds[i]
+            let amount = reservedTicketTypesAmount[id]
+            query = `update ${TICKETS_TYPE_DB} set reserved = reserved - ${amount} where id = ${id}`
+            await client.query(query)
+        }
+        
+        await client.query('COMMIT')
+        success = true
+      } catch (e) {
+        await client.query('ROLLBACK')
+        // console.log("ReserveTickets error: ", e)
+      } finally {
+        client.end()
+      }
+      return success
+}
+
 /**
  * 
  * @param {Array} reservedTicketIds (Integers)
@@ -220,4 +266,4 @@ async function releaseTickets(reservedTicketIds, ticketTypesAmount, eventId){
 
 
 module.exports = {getTicketTypes, reserveTickets, buyTickets, getAllReservedTicketsForBuyer, getReservedTickets,
-                    releaseTickets}
+                    releaseTickets, releaseAllTicketsForBuyer}
