@@ -7,5 +7,6 @@ create table events (
   image VARCHAR(255),
   locationid INT REFERENCES locations(id),
   latitude DECIMAL,
-  longitude DECIMAL
+  longitude DECIMAL,
+  ticketstablename varchar(255)
 );

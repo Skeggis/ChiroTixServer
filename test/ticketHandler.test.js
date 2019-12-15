@@ -1,13 +1,6 @@
 require('dotenv').config()
 const ticketHandler = require('../js/handlers/ticketHandler')
 const expect = require('chai').expect;
-const db = require('../js/database/db')
-
-const {
-    TICKETS_TYPE_DB,
-    EVENTS_DB,
-    TICKETS_CONNECT_DB
-} = process.env;
 
 describe('TicketHandler test', async () => {
     let reservedTicketsForBuyer;

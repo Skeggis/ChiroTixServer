@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "mocha -R spec --bail --exit=true",
     "setup": "node ./js/database/setup.js"
   },
   "repository": {
@@ -29,5 +29,9 @@
     "pg": "^7.14.0",
     "validator": "^12.1.0",
     "xss": "^1.0.6"
+  },
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "mocha": "^6.2.2"
   }
 }

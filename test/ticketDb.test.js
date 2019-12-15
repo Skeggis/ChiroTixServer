@@ -4,8 +4,7 @@ const expect = require('chai').expect;
 const db = require('../js/database/db')
 
 const {
-    TICKETS_TYPE_DB,
-    TICKETS_CONNECT_DB
+    TICKETS_TYPE_DB
 } = process.env;
 
 describe('TicketDb test', async () => {
@@ -187,9 +186,6 @@ describe('TicketDb test', async () => {
 
     describe('clean up DB tests', async () => {
         it('should clean up', async () => {
-            let query = `delete from ${TICKETS_CONNECT_DB}`
-            await db.query(query)
-    
             query = `update ${TICKETS_TYPE_DB} set sold = 0, reserved = 0`
             await db.query(query)
     

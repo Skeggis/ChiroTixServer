@@ -22,7 +22,7 @@ async function main() {
   console.info(`Initializing database on ${connectionString}`);
 
   // drop tables if exists
-  await query('DROP TABLE IF EXISTS locations, events');
+  await query('DROP TABLE IF EXISTS ticketsconnect, tickets, events, locations');
 
   console.info('Tables deleted');
 
@@ -30,10 +30,14 @@ async function main() {
   try {
     const locations = await readFileAsync('./sql/locations.sql');
     const events = await readFileAsync('./sql/events.sql');
+    const ticketTypes = await readFileAsync('./sql/ticketType.sql')
+    const ticketConnect = await readFileAsync('./sql/ticketConnect.sql')
 
 
     await query(locations.toString('utf8'));
     await query(events.toString('utf8'));
+    await query(ticketTypes.toString('utf8'));
+    await query(ticketConnect.toString('utf8'));
 
 
     console.info('Tables created');
