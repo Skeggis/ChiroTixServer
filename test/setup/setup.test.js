@@ -1,16 +1,17 @@
 require('dotenv').config()
-const db = require('../js/database/db')
+const db = require('../../js/database/db')
 const fs = require('fs');
 const util = require('util');
 const readFileAsync = util.promisify(fs.readFile);
-const formatter = require('../js/formatter')
+const formatter = require('../../js/formatter')
 
 const {
     TICKETS_TYPE_DB,
-    EVENTS_DB
+    EVENTS_DB,
+    TAGS_DB
 } = process.env;
 
-describe('Setup ticketDB test environment', async () => {
+describe('Setup test environment', async () => {
     global.ticketsSoldTableName = "ticketssold_1"
     global.tickets = []
     global.event = {}
@@ -34,6 +35,8 @@ describe('Setup ticketDB test environment', async () => {
         await db.query(query)
 
         await db.query(`DROP TABLE IF EXISTS ${global.ticketsSoldTableName}`);
+
+        await db.query(`delete from ${TAGS_DB}`)
     })
 
     it('should create ticketsSold table', async () => {
@@ -45,7 +48,7 @@ describe('Setup ticketDB test environment', async () => {
     it('should insert rows', async () => {
         query = `insert into ${EVENTS_DB} (name, ticketstablename) values('Test', '${global.ticketsSoldTableName}') returning *`
         let result = await db.query(query)
-        global.event = await formatter.eventFormatter(result.rows[0])
+        global.event = await formatter.formatEvent(result.rows[0])
 
         query = `insert into ${TICKETS_TYPE_DB} (name, price, amount) values('Venjulegur', 333.333, 100) returning *`
         result = await db.query(query)

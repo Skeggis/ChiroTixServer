@@ -1,5 +1,5 @@
 require('dotenv').config()
-const ticketHandler = require('../js/handlers/ticketHandler')
+const ticketHandler = require('../../js/handlers/ticketHandler')
 const expect = require('chai').expect;
 
 describe('TicketHandler test', async () => {
