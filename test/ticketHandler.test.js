@@ -1,13 +1,6 @@
 require('dotenv').config()
 const ticketHandler = require('../js/handlers/ticketHandler')
 const expect = require('chai').expect;
-const db = require('../js/database/db')
-
-const {
-    TICKETS_TYPE_DB,
-    EVENTS_DB,
-    TICKETS_CONNECT_DB
-} = process.env;
 
 describe('TicketHandler test', async () => {
     let reservedTicketsForBuyer;
@@ -213,6 +206,28 @@ describe('TicketHandler test', async () => {
             response = await ticketHandler.releaseTickets(data)
             expect(response.success).to.be.false
             expect(response.messages.length).to.equal(1)
+        })
+    })
+
+    describe('Release all Tickets', async () => {
+        it('should reserve 10 tickets and release all', async () => {
+            let newBuyerId = "Manni"
+            let data = {
+                tickets: [{
+                    ticketId: global.tickets[0].id,
+                    amount: 10
+                }],
+                eventId: global.event.id,
+                buyerId: newBuyerId
+            }
+            
+            let response = await ticketHandler.reserveTickets(data)
+            expect(response.success, "The tickets where not found").to.be.true
+            expect(response.reservedTickets.length).to.equal(10)
+
+            data.tickets = undefined
+            response = await ticketHandler.releaseAllTicketsForBuyer(data)
+            expect(response.success).to.be.true
         })
     })
 
