@@ -48,7 +48,7 @@ async function main() {
   }
 
   // drop tables if exists
-  await query('DROP TABLE IF EXISTS ticketsconnect, tickets, events, locations');
+  await query('DROP TABLE IF EXISTS tickets, events, locations, tags, tagsconnect');
 
   console.info('Tables deleted');
 
@@ -57,13 +57,15 @@ async function main() {
     const locations = await readFileAsync('./sql/locations.sql');
     const events = await readFileAsync('./sql/events.sql');
     const ticketTypes = await readFileAsync('./sql/ticketType.sql')
-    const ticketConnect = await readFileAsync('./sql/ticketConnect.sql')
+    const tags = await readFileAsync('./sql/tags.sql')
+    const tagsConnect = await readFileAsync('./sql/tagsConnect.sql')
 
 
     await query(locations.toString('utf8'));
     await query(events.toString('utf8'));
     await query(ticketTypes.toString('utf8'));
-    await query(ticketConnect.toString('utf8'));
+    await query(tags.toString('utf8'));
+    await query(tagsConnect.toString('utf8'));
 
 
     console.info('Tables created');
