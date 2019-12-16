@@ -6,6 +6,10 @@ const {
   updateTicketsTypeDb
 } = require('../database/eventDb.js')
 
+const {
+  validateInsertEvent
+} = require('../validation/eventValidation')
+
 async function getEvents() {
   const result = await getEventsDb()
   return result.rows
@@ -13,9 +17,29 @@ async function getEvents() {
 
 async function insertEvent(event){
 
+  const errors = validateInsertEvent(event)
+
+  if(errors.length > 0){
+    return{
+      success: false,
+      messages: errors
+    }
+  }
+
   event.date = new Date(event.date)
   const result = await insertEventDb(event)
-  return result;
+
+  if(result.success){
+    return {
+      success: true,
+      messages: [{message: 'Successfully inserted event'}]
+    }
+  }
+
+  return {
+    success: false,
+    messages: [{message: 'Something went wrong inserting event'}]
+  };
 }
 
 async function updateEvent(id, event, tickets){

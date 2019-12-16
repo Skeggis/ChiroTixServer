@@ -6,6 +6,22 @@ function validateInsertEvent(event) {
 
   const errors = []
 
+  if(typeof event.speakers !== 'object' || event.speakers.length === 0){
+    errors.push({
+      field: 'speakers',
+      message: 'Speakers must be a list of speakers'
+    })
+  } else {
+    event.speakers.forEach(speaker => {
+      if(typeof speaker.name !== 'string' || speaker.name === ''){
+        errors.push({
+          field: name,
+          message: 'Speaker must have a name'
+        })
+      }
+    })
+  }
+
   if (typeof event.name !== 'string') {
     errors.push({
       field: 'name',

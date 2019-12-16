@@ -60,18 +60,11 @@ async function insertEventRoute(req, res){
     tickets
   }
 
-
-  const errors = validateInsertEvent(event)
-
-  if(errors.length > 0){
-    return res.status(400).json(errors)
-  }
-
   const result = await insertEvent(event)
-  if(result){
-    return res.status(200).json({message: 'Successfully inserted event'});
+  if(result.success){
+    return res.status(200).json(result);
   }
-  return res.status(500).json({message: 'Something went wrong inserting the event'})
+  return res.status(400).json(result)
 }
 
 async function updateEventRoute(req, res){

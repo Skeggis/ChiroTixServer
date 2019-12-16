@@ -31,7 +31,6 @@ async function insertEventDb(event) {
     latitude: event.latitude
   }
   let speakers = event.speakers //[{name:String, id: Integer (iff speaker exists in our db)}]
-  console.log(event)
 
   let success = false
   const client = await getClient()
@@ -56,8 +55,7 @@ async function insertEventDb(event) {
       counter += 3
     }
     ticketQuery += ' RETURNING *'
-    console.log(ticketQuery)
-    console.log(ticketValues)
+
     await client.query(ticketQuery, ticketValues)
 
     const soldTicketsTable = await readFileAsync('./sql/ticketsSold.sql')
@@ -66,33 +64,64 @@ async function insertEventDb(event) {
 
     await client.query(`UPDATE ${EVENTS_DB} SET ticketstablename = '${ticketsSoldTableName}' WHERE id = ${eventRes.rows[0].id}`)
 
+    //need to check if speaker already exists before we create new
+    //and need to check if old speaker is already connected to event
     let newSpeakers = []
     let insertNewSpeakersQuery = `insert into ${SPEAKERS_DB} (name) values`
     let oldSpeakers = []
-    speakers.forEach((speaker,i) => {
-      if(speaker.id){oldSpeakers.push(speaker)}
+    let speakerErrors=[]
+    speakers.forEach((speaker, i) => {
+      if (speaker.id) {
+        const check = await client.query(`select * from ${SPEAKERS_CONNECT_DB} where speakerid = $1 and eventid = $2`, [speaker.id, eventRes.rows[0].id])
+        if(check.rowCount > 0){
+          speakerErrors.push({
+            message: 'Speaker is already assigned to this event'
+          })
+        } else {
+          oldSpeakers.push(speaker)
+        }
+      }
       else {
-        newSpeakers.push(speaker)
-        if(newSpeakers.length != 0) {insertNewSpeakersQuery+=","}
-        insertNewSpeakersQuery += ` ('${speaker.name}')`
+        const check = await client.query(`select * from ${SPEAKERS_DB} where name = $1`, [speaker.name])
+        if(check.rowCount > 0){
+          speakerErrors.push({
+            message: 'A speaker with this name already exists'
+          })
+        } else {
+          newSpeakers.push(speaker)
+          if (newSpeakers.length != 1) { insertNewSpeakersQuery += "," }
+          insertNewSpeakersQuery += ` ('${speaker.name}')`
+        }
       }
     })
-    
+    insertNewSpeakersQuery += ' returning *'
+
+
+    if(speakerErrors.length > 0) {
+      return {
+        success: false,
+        messages: speakerErrors
+      }
+    }
+
     let theSpeakers = []
-    if(newSpeakers.length != 0){
+    if (newSpeakers.length != 0) {
       let newSpeakersResult = await client.query(insertNewSpeakersQuery)
       theSpeakers = await formatter.formatSpeakers(newSpeakersResult.rows)
     }
 
-    let theSpeakers = oldSpeakers.concat(theSpeakers)
+    theSpeakers = oldSpeakers.concat(theSpeakers)
 
     let connectSpeakersToEventQuery = `insert into ${SPEAKERS_CONNECT_DB} (eventid, speakerid) values`
     theSpeakers.forEach((speaker, i) => {
-      if(i != 0) { connectSpeakersToEventQuery += ","}
-      else { connectSpeakersToEventQuery += ` (${eventRes.rows[0].id}, ${speaker.id})`}
-     })
+      connectSpeakersToEventQuery += ` (${eventRes.rows[0].id}, ${speaker.id})`
+      if (i < theSpeakers.length - 1) {
+        connectSpeakersToEventQuery += ','
+      }
+    })
+    console.log(connectSpeakersToEventQuery)
 
-     await client.query(connectSpeakersToEventQuery)
+    await client.query(connectSpeakersToEventQuery)
 
     await client.query('COMMIT')
     success = true
@@ -102,7 +131,9 @@ async function insertEventDb(event) {
   } finally {
     client.end()
   }
-  return success
+  return {
+    success: success
+  }
 }
 
 async function updateEventDb(id, event) {
@@ -211,7 +242,7 @@ async function updateTicketsTypeDb(id, tickets) {
 
               if (ticket.amount >= soldOrReserved.rowCount) {
                 const amountQuery = `UPDATE ${TICKETS_TYPE_DB} SET amount = $1 WHERE id = $2`
-                const result = await client.query(amountQuery, [ticket.amount, ticket.id])
+                await client.query(amountQuery, [ticket.amount, ticket.id])
               } else {
                 ticketErrors.push({
                   ticketId: ticket.id,
@@ -271,7 +302,67 @@ async function updateTicketsTypeDb(id, tickets) {
   } finally {
     client.end()
   }
-return success
+  return success
+}
+
+async function updateSpeakersForEvent(eventId, speaker) {
+  let newSpeakers = []
+  let oldSpeakers = []//Spaekers that already exists in the database. We are not going to change the speaker
+  speakers.filter(speaker => {
+    if (speaker.id) {
+      oldSpeakers.push(speaker)
+    } else {
+      newSpeakers.push(speaker)
+    }
+  })
+
+  let success = false
+  const client = await getClient()
+  try {
+    await client.query('BEGIN')
+
+    let speakerErrors = []
+    newSpeakers.forEach(async speaker => {
+      //check if name exists already
+      const check = await client.query(`select 1 from ${SPEAKERS_DB} WHERE name = $1`, [speaker.name])
+      if (check.rowCount === 0) {
+        await client.query(`insert into ${SPEAKERS_DB} (name) values ($1) returning *`, [speaker.name])
+        await client.query(`insert into ${SPEAKERS_CONNECT_DB} (eventid, speakerid) values ($1, $2)`, [eventId, speaker.id])
+      } else {
+        speakerErrors.push({
+          message: `Speaker with name ${speaker.name} already exists`
+        })
+      }
+    })
+
+    oldSpeakers.forEach(async speaker => {
+      const check = await client.query(`select * from ${SPEAKERS_DB} where id = $1`, [speaker.id])
+      if (check.rowCount === 0) {
+        speakerErrors.push({
+          message: 'Speaker does not exist'
+        })
+      } else {
+        //chekcif speaker is already assigned to event
+        const check = await client.query(`select * from ${SPEAKERS_CONNECT_DB} where eventid = $1 AND speakerid = $2`, [eventId, speaker.id])
+        if (check.rowCount > 0) {
+          speakerErrors.push({
+            message: 'This speaker is already assigned to this event'
+          })
+        } else {
+          await client.query(`insert into ${SPEAKERS_CONNECT_DB} (eventid, speakerid) values ($1, $2)`, [event.id, speaker.id])
+        }
+      }
+    })
+
+    await client.query('COMMIT')
+    success = true
+  } catch (e) {
+    await client.query('ROLLBACK')
+    throw e
+  } finally {
+    client.end()
+  }
+  return success
 }
 
 async function getEventByIdDb(id) {
