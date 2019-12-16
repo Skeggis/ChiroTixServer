@@ -24,6 +24,7 @@ async function releaseAllTicketsForBuyer({buyerId=-1, eventId=-1}){
 async function releaseTickets({buyerId=-1, eventId=-1, tickets=[]}){
     let reservedTicketIds = []
     let ticketTypesAmount = []
+    //Count how many tickets of each type the buyer had reserved, and make an array with all the ticket.ids (ids from the sold table)
     for(let j = 0; j < tickets.length; j++){ 
         let ticket = tickets[j]
         reservedTicketIds.push(ticket.id) 
@@ -63,6 +64,19 @@ async function reserveTickets({buyerId=-1, eventId=-1, tickets=[]}){
     return ticketCheckResponse
 }
 
+/**
+ * 
+ * @param {Array} ticketTypes {
+ *              id: Integer (id of the ticketType),
+ *              amount: Integer (amount of tickets that can be sold),
+ *              reserved: Integer,
+ *              sold: Integer
+ * }
+ * @param {Array} tickets : [{
+ *              ticketId: Integer,
+ *              amount: Integer
+ *          }] 
+ */
 async function checkForAvailableTickets(ticketTypes, tickets){
     if(!ticketTypes[0]){ return SYSTEM_ERROR }
 
@@ -115,6 +129,26 @@ async function buyTickets({eventId=-1, buyerId=-1, tickets=[], buyerInfo={}}){
     return buyingTicketsResponse
 }
 
+/**
+ * 
+ * @param {Array} reservedTickets : [{
+                            id: ticket.id,
+                            eventId: ticket.evendid,
+                            ticketId: ticket.ticketid,
+                            receipt: ticket.receipt,
+                            buyerId: ticket.buyerid,
+                            buyerInfo: ticket.buyerinfo,
+                            ownerInfo: ticket.ownerinfo,
+                            date: ticket.date
+ *                      }]
+ * @param {Array} tickets : [{
+ *                  ticketId: Integer,
+ *                  ownerInfo: {
+ *                          name: String,
+ *                          SSN: String (?)
+ *                      }
+ *              }]
+ */
 async function ticketsReservedMatchBuyerTickets(reservedTickets, tickets){
     let buyerTicketTypes = []
     let reservedTicketTypes = []
@@ -133,7 +167,7 @@ async function ticketsReservedMatchBuyerTickets(reservedTickets, tickets){
         else { buyerTicketTypes[ticket.ticketId]++ }
     }
 
-    //Check that the amount of each ticket this buyer is trying to buy is the same that the DB thinks he has reserved.
+    //Check that the amount of each ticket type this buyer is trying to buy is the same that the DB thinks he has reserved.
     let ticketTypeIds = Object.keys(buyerTicketTypes)
     for(let i = 0; i < ticketTypeIds.length; i++){
         let id = ticketTypeIds[i]

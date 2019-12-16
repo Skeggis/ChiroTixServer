@@ -2,7 +2,7 @@ const {
   query,
   getClient
 } = require('./db');
-
+const formatter = require('../formatter')
 const util = require('util');
 const fs = require('fs');
 const readFileAsync = util.promisify(fs.readFile);
@@ -10,7 +10,9 @@ const readFileAsync = util.promisify(fs.readFile);
 
 const {
   EVENTS_DB,
-  TICKETS_TYPE_DB
+  TICKETS_TYPE_DB,
+  SPEAKERS_DB,
+  SPEAKERS_CONNECT_DB
 } = process.env
 
 async function getEventsDb() {
@@ -26,16 +28,14 @@ async function insertEventDb(event) {
     image: event.image,
     locationid: event.locationId,
     longitude: event.longitude,
-    latitude: event.latitude,
+    latitude: event.latitude
   }
-  console.log(event)
+  let speakers = event.speakers //[{name:String, id: Integer (iff speaker exists in our db)}]
 
   let success = false
   const client = await getClient()
   try {
     await client.query('BEGIN')
-
-
 
     const eventQuery = `INSERT INTO ${EVENTS_DB} (name, date, shortdescription, longdescription, image, locationid, longitude, latitude)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`
@@ -55,15 +55,73 @@ async function insertEventDb(event) {
       counter += 3
     }
     ticketQuery += ' RETURNING *'
-    console.log(ticketQuery)
-    console.log(ticketValues)
+
     await client.query(ticketQuery, ticketValues)
 
     const soldTicketsTable = await readFileAsync('./sql/ticketsSold.sql')
     const ticketsSoldTableName = `ticketssold_${eventRes.rows[0].id}`
     await client.query(`CREATE TABLE ${ticketsSoldTableName} ${soldTicketsTable.toString('utf8')}`)
 
-    await client.query(`UPDATE ${EVENTS_DB} SET ticketstablename = '${ticketsSoldTableName}' WHERE id = ${eventRes.rows[0].id}`)
+    await client.query(`UPDATE ${EVENTS_DB} SET ticketstablename = '${ticketsSoldTableName}' WHERE id = ${eventRes.rows[0].id}`)//TODO: Move into the original insert?
+
+    //need to check if speaker already exists before we create new
+    //and need to check if old speaker is already connected to event
+    let newSpeakers = []
+    let insertNewSpeakersQuery = `insert into ${SPEAKERS_DB} (name) values`
+    let oldSpeakers = []
+    let speakerErrors=[]
+    speakers.forEach((speaker, i) => {
+      if (speaker.id) {
+        const check = await client.query(`select * from ${SPEAKERS_CONNECT_DB} where speakerid = $1 and eventid = $2`, [speaker.id, eventRes.rows[0].id])
+        if(check.rowCount > 0){
+          speakerErrors.push({
+            message: 'Speaker is already assigned to this event'
+          })
+        } else {
+          oldSpeakers.push(speaker)
+        }
+      }
+      else {
+        const check = await client.query(`select * from ${SPEAKERS_DB} where name = $1`, [speaker.name])
+        if(check.rowCount > 0){
+          speakerErrors.push({
+            message: 'A speaker with this name already exists'
+          })
+        } else {
+          newSpeakers.push(speaker)
+          if (newSpeakers.length != 1) { insertNewSpeakersQuery += "," }
+          insertNewSpeakersQuery += ` ('${speaker.name}')`
+        }
+      }
+    })
+    insertNewSpeakersQuery += ' returning *'
+
+
+    if(speakerErrors.length > 0) {
+      return {
+        success: false,
+        messages: speakerErrors
+      }
+    }
+
+    let theSpeakers = []
+    if (newSpeakers.length != 0) {
+      let newSpeakersResult = await client.query(insertNewSpeakersQuery)
+      theSpeakers = await formatter.formatSpeakers(newSpeakersResult.rows)
+    }
+
+    theSpeakers = oldSpeakers.concat(theSpeakers)
+
+    let connectSpeakersToEventQuery = `insert into ${SPEAKERS_CONNECT_DB} (eventid, speakerid) values`
+    theSpeakers.forEach((speaker, i) => {
+      connectSpeakersToEventQuery += ` (${eventRes.rows[0].id}, ${speaker.id})`
+      if (i < theSpeakers.length - 1) {
+        connectSpeakersToEventQuery += ','
+      }
+    })
+    console.log(connectSpeakersToEventQuery)
+
+    await client.query(connectSpeakersToEventQuery)
 
     await client.query('COMMIT')
     success = true
@@ -73,7 +131,9 @@ async function insertEventDb(event) {
   } finally {
     client.end()
   }
-  return success
+  return {
+    success: success
+  }
 }
 
 async function updateEventDb(id, event) {
@@ -81,7 +141,7 @@ async function updateEventDb(id, event) {
   let success = false
   const client = await getClient()
   try {
-    await client.query('BEGIN')
+    await client.query('BEGIN')//TODO: change into a single query, i.e. no BEGIN nor ROLLBACK. ?
     let t = ''
     let counter = 0
     Object.keys(event).forEach(key => {
@@ -114,7 +174,7 @@ async function updateTicketsTypeDb(id, tickets) {
   let oldTickets = []
   let oldTicketsValues = []
   tickets.filter(ticket => {
-    if (ticket.id) {
+    if (ticket.id) {//Perhaps instead have a old/new key which is true/false, improves readability?
       const myTicket = {
         id: ticket.id,
         name: ticket.name,
@@ -182,7 +242,7 @@ async function updateTicketsTypeDb(id, tickets) {
 
               if (ticket.amount >= soldOrReserved.rowCount) {
                 const amountQuery = `UPDATE ${TICKETS_TYPE_DB} SET amount = $1 WHERE id = $2`
-                const result = await client.query(amountQuery, [ticket.amount, ticket.id])
+                await client.query(amountQuery, [ticket.amount, ticket.id])
               } else {
                 ticketErrors.push({
                   ticketId: ticket.id,
@@ -204,7 +264,7 @@ async function updateTicketsTypeDb(id, tickets) {
             })
           } else {
             myTicket = {
-              name: ticket.name || null,
+              name: ticket.name || null, //Can you set name as null ? TODO
               amount: ticket.amount || null,
               price: ticket.price || null
             }
@@ -242,7 +302,67 @@ async function updateTicketsTypeDb(id, tickets) {
   } finally {
     client.end()
   }
-return success
+  return success
+}
+
+async function updateSpeakersForEvent(eventId, speaker) {
+  let newSpeakers = []
+  let oldSpeakers = []//Spaekers that already exists in the database. We are not going to change the speaker
+  speakers.filter(speaker => {
+    if (speaker.id) {
+      oldSpeakers.push(speaker)
+    } else {
+      newSpeakers.push(speaker)
+    }
+  })
+
+  let success = false
+  const client = await getClient()
+  try {
+    await client.query('BEGIN')
+
+    let speakerErrors = []
+    newSpeakers.forEach(async speaker => {
+      //check if name exists already
+      const check = await client.query(`select 1 from ${SPEAKERS_DB} WHERE name = $1`, [speaker.name])
+      if (check.rowCount === 0) {
+        await client.query(`insert into ${SPEAKERS_DB} (name) values ($1) returning *`, [speaker.name])
+        await client.query(`insert into ${SPEAKERS_CONNECT_DB} (eventid, speakerid) values ($1, $2)`, [eventId, speaker.id])
+      } else {
+        speakerErrors.push({
+          message: `Speaker with name ${speaker.name} already exists`
+        })
+      }
+    })
+
+    oldSpeakers.forEach(async speaker => {
+      const check = await client.query(`select * from ${SPEAKERS_DB} where id = $1`, [speaker.id])
+      if (check.rowCount === 0) {
+        speakerErrors.push({
+          message: 'Speaker does not exist'
+        })
+      } else {
+        //chekcif speaker is already assigned to event
+        const check = await client.query(`select * from ${SPEAKERS_CONNECT_DB} where eventid = $1 AND speakerid = $2`, [eventId, speaker.id])
+        if (check.rowCount > 0) {
+          speakerErrors.push({
+            message: 'This speaker is already assigned to this event'
+          })
+        } else {
+          await client.query(`insert into ${SPEAKERS_CONNECT_DB} (eventid, speakerid) values ($1, $2)`, [event.id, speaker.id])
+        }
+      }
+    })
+
+    await client.query('COMMIT')
+    success = true
+  } catch (e) {
+    await client.query('ROLLBACK')
+    throw e
+  } finally {
+    client.end()
+  }
+  return success
 }
 
 async function getEventByIdDb(id) {

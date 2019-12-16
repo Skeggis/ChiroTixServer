@@ -6,12 +6,16 @@ const {
 } = require('./js/helpers.js')
 
 const eventRouter = require('./js/routers/eventRouter')
+const tagsRouter = require('./js/routers/tagsRouter')
+const ticketRouter = require('./js/routers/ticketRouter')
 
 
 const app = express();
 
 app.use(express.json());
 app.use(eventRouter)
+app.use(tagsRouter)
+app.use(ticketRouter)
 app.use(notFoundHandler)
 app.use(errorHandler)
 

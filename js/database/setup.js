@@ -17,6 +17,12 @@ const readFileAsync = util.promisify(fs.readFile);
 const {
   EVENTS_DB,
   TICKETS_TYPE_DB,
+  ORGANIZATIONS_DB,
+  SPEAKERS_DB,
+  TAGS_DB,
+  TAGS_CONNECT_DB,
+  LOCATIONS_DB,
+  SPEAKERS_CONNECT_DB
 } = process.env
 
 
@@ -48,7 +54,7 @@ async function main() {
   }
 
   // drop tables if exists
-  await query('DROP TABLE IF EXISTS tickets, events, locations, tags, tagsconnect');
+  await query(`DROP TABLE IF EXISTS ${SPEAKERS_CONNECT_DB}, ${SPEAKERS_DB}, ${TICKETS_TYPE_DB}, ${EVENTS_DB}, ${LOCATIONS_DB}, ${TAGS_DB}, ${TAGS_CONNECT_DB}, ${ORGANIZATIONS_DB}`);
 
   console.info('Tables deleted');
 
@@ -59,6 +65,8 @@ async function main() {
     const ticketTypes = await readFileAsync('./sql/ticketType.sql')
     const tags = await readFileAsync('./sql/tags.sql')
     const tagsConnect = await readFileAsync('./sql/tagsConnect.sql')
+    const speakers = await readFileAsync('./sql/speakers.sql');
+    const speakersConnect = await readFileAsync('./sql/speakersConnect.sql');
 
 
     await query(locations.toString('utf8'));
@@ -66,6 +74,8 @@ async function main() {
     await query(ticketTypes.toString('utf8'));
     await query(tags.toString('utf8'));
     await query(tagsConnect.toString('utf8'));
+    await query(speakers.toString('utf8'));
+    await query(speakersConnect.toString('utf8'));
 
 
     console.info('Tables created');

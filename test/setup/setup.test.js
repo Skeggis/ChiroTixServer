@@ -8,7 +8,11 @@ const formatter = require('../../js/formatter')
 const {
     TICKETS_TYPE_DB,
     EVENTS_DB,
-    TAGS_DB
+    TAGS_DB,
+    LOCATIONS_DB,
+    SPEAKERS_DB,
+    SPEAKERS_CONNECT_DB,
+    TAGS_CONNECT_DB
 } = process.env;
 
 describe('Setup test environment', async () => {
@@ -27,6 +31,8 @@ describe('Setup test environment', async () => {
     }
 
     it('should delete from all tables', async () => {
+        await db.query(`delete from ${SPEAKERS_CONNECT_DB}`)
+        await db.query(`delete from ${SPEAKERS_DB}`)
 
         query = `delete from ${TICKETS_TYPE_DB}`
         await db.query(query)
@@ -37,6 +43,12 @@ describe('Setup test environment', async () => {
         await db.query(`DROP TABLE IF EXISTS ${global.ticketsSoldTableName}`);
 
         await db.query(`delete from ${TAGS_DB}`)
+
+        await db.query(`delete from ${TAGS_CONNECT_DB}`)
+
+        await db.query(`delete from ${LOCATIONS_DB}`)
+
+
     })
 
     it('should create ticketsSold table', async () => {
@@ -49,6 +61,10 @@ describe('Setup test environment', async () => {
         query = `insert into ${EVENTS_DB} (name, ticketstablename) values('Test', '${global.ticketsSoldTableName}') returning *`
         let result = await db.query(query)
         global.event = await formatter.formatEvent(result.rows[0])
+
+        query = `insert into ${LOCATIONS_DB} (city, country) values ('Reykjavík', 'Iceland') returning *`
+        result = await db.query(query);
+        global.location = result.rows[0]
 
         query = `insert into ${TICKETS_TYPE_DB} (name, price, amount) values('Venjulegur', 333.333, 100) returning *`
         result = await db.query(query)

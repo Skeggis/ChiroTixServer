@@ -63,7 +63,19 @@ async function formatTags(tags){
     return formattedTags
 }
 
+async function formatSpeaker(speaker){
+    return{
+        name: speaker.name,
+        id: speaker.id
+    }
+}
+
+async function formatSpeakers(speakers){
+    let newSpeakers = []
+    for(let i = 0; i < speakers.length; i++){newSpeakers.push(await formatSpeaker(speakers[i]))}
+    return newSpeakers
+}
 
 
 module.exports = {formatTicketType, formatTicketTypes, formatEvent, formatTicket, formatTickets,
-                    formatTag, formatTags}
+                    formatTag, formatTags, formatSpeaker, formatSpeakers}
