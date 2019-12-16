@@ -64,7 +64,7 @@ async function insertEventDb(event) {
     const ticketsSoldTableName = `ticketssold_${eventRes.rows[0].id}`
     await client.query(`CREATE TABLE ${ticketsSoldTableName} ${soldTicketsTable.toString('utf8')}`)
 
-    await client.query(`UPDATE ${EVENTS_DB} SET ticketstablename = '${ticketsSoldTableName}' WHERE id = ${eventRes.rows[0].id}`)
+    await client.query(`UPDATE ${EVENTS_DB} SET ticketstablename = '${ticketsSoldTableName}' WHERE id = ${eventRes.rows[0].id}`)//TODO: Move into the original insert?
 
     let newSpeakers = []
     let insertNewSpeakersQuery = `insert into ${SPEAKERS_DB} (name) values`
@@ -110,7 +110,7 @@ async function updateEventDb(id, event) {
   let success = false
   const client = await getClient()
   try {
-    await client.query('BEGIN')
+    await client.query('BEGIN')//TODO: change into a single query, i.e. no BEGIN nor ROLLBACK. ?
     let t = ''
     let counter = 0
     Object.keys(event).forEach(key => {
@@ -143,7 +143,7 @@ async function updateTicketsTypeDb(id, tickets) {
   let oldTickets = []
   let oldTicketsValues = []
   tickets.filter(ticket => {
-    if (ticket.id) {
+    if (ticket.id) {//Perhaps instead have a old/new key which is true/false, improves readability?
       const myTicket = {
         id: ticket.id,
         name: ticket.name,
@@ -233,7 +233,7 @@ async function updateTicketsTypeDb(id, tickets) {
             })
           } else {
             myTicket = {
-              name: ticket.name || null,
+              name: ticket.name || null, //Can you set name as null ? TODO
               amount: ticket.amount || null,
               price: ticket.price || null
             }
