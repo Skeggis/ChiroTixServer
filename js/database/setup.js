@@ -17,6 +17,12 @@ const readFileAsync = util.promisify(fs.readFile);
 const {
   EVENTS_DB,
   TICKETS_TYPE_DB,
+  ORGANIZATIONS_DB,
+  SPEAKERS_DB,
+  TAGS_DB,
+  TAGS_CONNECT_DB,
+  LOCATIONS_DB,
+  SPEAKERS_CONNECT_DB
 } = process.env
 
 
@@ -48,7 +54,7 @@ async function main() {
   }
 
   // drop tables if exists
-  await query('DROP TABLE IF EXISTS speakersconnect, speakers, tickets, events, locations, tags, tagsconnect');
+  await query(`DROP TABLE IF EXISTS ${SPEAKERS_CONNECT_DB}, ${SPEAKERS_DB}, ${TICKETS_TYPE_DB}, ${EVENTS_DB}, ${LOCATIONS_DB}, ${TAGS_DB}, ${TAGS_CONNECT_DB}, ${ORGANIZATIONS_DB}`);
 
   console.info('Tables deleted');
 
