@@ -5,7 +5,7 @@ create table events (
   shortdescription TEXT,
   longdescription TEXT,
   image VARCHAR(255),
-  locationid INT REFERENCES locations(id),
+  cityid INT REFERENCES cities(id),
   latitude DECIMAL,
   longitude DECIMAL,
   ticketstablename varchar(255),
