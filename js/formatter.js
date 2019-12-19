@@ -50,6 +50,12 @@ async function formatEvent(event){
     }
 }
 
+async function formatEvents(events){
+    let newEvents = []
+    for(let i = 0; i < events.length; i++){ newEvents.push(formatEvent(events[i])) }
+    return newEvents
+}
+
 async function formatTag(tag){
     return{
         id: tag.id,
@@ -77,5 +83,5 @@ async function formatSpeakers(speakers){
 }
 
 
-module.exports = {formatTicketType, formatTicketTypes, formatEvent, formatTicket, formatTickets,
+module.exports = {formatTicketType, formatTicketTypes, formatEvent, formatEvents, formatTicket, formatTickets,
                     formatTag, formatTags, formatSpeaker, formatSpeakers}

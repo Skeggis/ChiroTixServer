@@ -26,7 +26,8 @@ async function insertEvent(event){
     }
   }
 
-  event.date = new Date(event.date)
+  event.startDate = new Date(event.startDate)
+  event.endDate = new Date(event.endDate)
   const result = await insertEventDb(event)
 
   if(result.success){

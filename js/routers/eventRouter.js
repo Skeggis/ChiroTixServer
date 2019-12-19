@@ -38,11 +38,12 @@ async function getEventsRoute(req, res){
 async function insertEventRoute(req, res){
   const {
     name,
-    date,
+    startDate,
+    endDate,
     shortDescription,
     longDescription,
     image,
-    locationId,
+    cityId,
     latitude,
     longitude,
     tickets
@@ -50,11 +51,12 @@ async function insertEventRoute(req, res){
 
   const event = {
     name,
-    date, 
+    startDate,
+    endDate, 
     shortDescription,
     longDescription,
     image,
-    locationId,
+    cityId,
     latitude,
     longitude,
     tickets
@@ -81,7 +83,7 @@ async function updateEventRoute(req, res){
     shortDescription,
     longDescription,
     image,
-    locationId,
+    cityId,
     latitude,
     longitude,
     tickets
@@ -93,7 +95,7 @@ async function updateEventRoute(req, res){
     shortDescription: shortDescription || null,
     longDescription: longDescription || null,
     image: image || null,
-    locationId: locationId || null,
+    cityId: cityId || null,
     latitude: latitude || null,
     longitude: longitude || null,
   }

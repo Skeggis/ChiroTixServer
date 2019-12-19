@@ -1,3 +1,4 @@
+require('dotenv').config()
 /**
 * @param {function} fn - Async function to be wrapped into an error catching function.
 *
@@ -29,7 +30,17 @@ function isValidDate(d){
 }
 
 
-
+const DB_CONSTANTS = {
+  TAGS_DB,
+  TAGS_CONNECT_DB,
+  EVENTS_DB,
+  SPEAKERS_DB,
+  SPEAKERS_CONNECT_DB,
+  LOCATIONS_DB,
+  ORGANIZATIONS_DB,
+  CATEGORIES_DB,
+  SEARCHEVENTS_DB
+} = process.env;
 
 
 
@@ -37,5 +48,6 @@ module.exports = {
   catchErrors,
   notFoundHandler,
   errorHandler,
-  isValidDate
+  isValidDate,
+  DB_CONSTANTS
 }

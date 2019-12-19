@@ -6,60 +6,90 @@ const {
   TICKETS_TYPE_DB,
   SPEAKERS_DB,
   SPEAKERS_CONNECT_DB,
-  EVENTS_DB
+  CATEGORIES_DB,
+  EVENTS_DB,
+  ORGANIZATIONS_DB,
+  TAGS_DB,
+  TAGS_CONNECT_DB,
+  CITIES_DB,
+  COUNTRIES_DB
 } = process.env
 
 describe('Create events', async () => {
+  let categoryId;
+  let organizationId;
+  let tags=[]
+  let cityId;
+  let event = {
+    name: 'testEvent',
+    longDescription: 'longDescription bro this is very cool event for you icpa will be there and me too. Babies and good vibes.',
+    shortDescription: 'shortDescription coolest event out there.',
+    image: 'image',
+    category: {categoryId: categoryId, category:''},
+    CECredits: 5,
+    startDate: '2019-12-18',
+    endDate: '2019-12-21',
+    latitude: 0,
+    longitude: 0,
+    organization: {organizationId: organizationId, organization:''},
+    tags: tags,
+    city: {cityId:cityId, city:''},
+    tickets: [
+      {
+        price: 100,
+        amount: 1000,
+        name: 'basic'
+      },
+      {
+        name: 'premium',
+        price: 200,
+        amount: 500
+      }
+    ],
+    speakers: [
+      {
+        name: 'Róbert Ingi Huldarsson'
+      },
+      {
+        name: 'Þórður Ágústsson',
+      },
+      {
+        name: 'Vignir'
+      }
+    ]
+  }
   before(async () => {
-    const result = await query(`select * from ${EVENTS_DB}`)
-    console.log(result)
-    result.rows.forEach(async row => await query(`drop table if exists ${row.tickettablename}`))
-    await query(`delete from ${TICKETS_TYPE_DB}`)
-    await query(`delete from ${SPEAKERS_CONNECT_DB}`)
-    await query(`delete from ${SPEAKERS_DB}`)
-    await query(`delete from ${EVENTS_DB}`)
+    let result = await query(`select * from ${EVENTS_DB}`)
     await query(`insert into ${SPEAKERS_DB} (name) values ('testSpeaker')`)
+    result = await query(`insert into ${CATEGORIES_DB} (category) values ('Massi') returning *`)
+    event.category.categoryId = result.rows[0].id
+    event.category.category = result.rows[0].category
+    result = await query(`insert into ${ORGANIZATIONS_DB} (name) values('ICPA') returning *`)
+    event.organization.organizationId = result.rows[0].id
+    event.organization.organization = result.rows[0].name
+
+    result = await query(`insert into ${COUNTRIES_DB} (country) values('Iceland') returning *`)
+    let countryId = result.rows[0].id
+    result = await query(`insert into ${CITIES_DB} (city, countryid) values('Reykjavik', ${countryId}) returning *`)
+    event.city.cityId = result.rows[0].id
+    event.city.city = result.rows[0].city
+
+
+    result = await query(`insert into ${TAGS_DB} (tag) values ('Massi') returning *`)
+    tags.push(result.rows[0])
+    result = await query(`insert into ${TAGS_DB} (tag) values ('Hands on') returning *`)
+    tags.push(result.rows[0])
+    result = await query(`insert into ${TAGS_DB} (tag) values ('Red') returning *`)
+    tags.push(result.rows[0])
+    event.tags = tags
   })
 
   describe('Successful creation', async () => {
-
     it('should create an event successfully that starts selling tickets right away', async () => {
-      let event = {
-        name: 'testEvent',
-        longDescription: 'longDescription',
-        shortDescription: 'shortDescription',
-        image: 'image',
-        date: '12-13-19',
-        locationId: global.location.id,
-        latitude: 0,
-        longitude: 0,
-        tickets: [
-          {
-            price: 100,
-            amount: 1000,
-            name: 'basic'
-          },
-          {
-            name: 'premium',
-            price: 200,
-            amount: 500
-          }
-        ],
-        speakers: [
-          {
-            name: 'Róbert'
-          },
-          {
-            name: 'Þórður',
-          },
-          {
-            name: 'Vignir'
-          }
-        ]
-      }
-
+      
+console.log(event)
       const result = await eventHandler.insertEvent(event)
-      console.log(result)
+console.log(result)
       expect(result.success).to.be.true
 
       const eventResult = await query(`select * from ${EVENTS_DB}`)
@@ -73,7 +103,7 @@ describe('Create events', async () => {
     })
   })
 
-  describe('Unsuccessful creation', async () => {
+  describe.skip('Unsuccessful creation', async () => {
     it('should fail to insert a event because of missing parameters', async () => {
       event = {
         name: 'only name passed'
