@@ -2,6 +2,8 @@ const db = require('./db');
 const formatter = require('../formatter')
 const {DB_CONSTANTS} = require('../helpers')
 const featuredLimit = 15
+const {SYSTEM_ERROR} = require('../Messages')
+
 
 /**
  * 
@@ -28,7 +30,7 @@ const featuredLimit = 15
  *              
  * }
  */
-function search({searchString='', organizations=[], countries=[],
+async function search({searchString='', organizations=[], countries=[],
 cities=[], categories=[], tags=[], speakers=[],  dates={},price={},CECredits={}}){
     let query = `select * from ${DB_CONSTANTS.SEARCHEVENTS_DB} where`
     let zingle = false
@@ -70,6 +72,55 @@ function priceSearchQuery(minPrice, maxPrice){ return `(${minPrice} <= ${DB_CONS
 function CECreditsSearchQuery(minCECredits, maxCECredits){ return `(${minCECredits} <= ${DB_CONSTANTS.SEARCHEVENTS_DB}.cecredits and ${maxCECredits} <= ${DB_CONSTANTS.SEARCHEVENTS_DB}.cecredits)` }
 
 
+async function GetSearchValues(){
+    const client = await db.getClient()
+    let message={
+        success: false,
+        messages: [],
+        result: {}
+    }
+    try{
+        await client.query('BEGIN')
+        //Get categories
+        const categories = await client.query(`select * from ${DB_CONSTANTS.CATEGORIES_DB}`)
+        message.result.categories=categories.rows
+
+        //Do we need to verify that each city is connected to a country?
+        //Get cities (that has an event in it)?
+        const cities = await client.query(`select * from ${DB_CONSTANTS.CITIES_DB}`)
+        message.result.cities=cities.rows
+
+        //Get countries (that have an event in it?) 
+        const countries = await client.query(`select * from ${DB_CONSTANTS.COUNTRIES_DB}`)
+        message.result.countries = countries.rows
+
+        //Get organizations (that are holding events?)
+        const orgs = await client.query(`select * from ${DB_CONSTANTS.ORGANIZATIONS_DB}`)
+        message.result.organizations = orgs.rows
+
+        //Get tags (that is connected to a event (a event that has not finished?)?)
+        const tags = await client.query(`select tags.id, tags.tag from ${DB_CONSTANTS.TAGS_DB} as tags
+         INNER JOIN ${DB_CONSTANTS.TAGS_CONNECT_DB} as connect on tags.id = connect.tagid INNER JOIN ${DB_CONSTANTS.EVENTS_DB} as events on events.id = connect.eventid GROUP BY tags.id`)
+        message.result.tags = tags.rows
+
+        //Get speakers (taht are speaking in a evnet?)
+        const speakers = await client.query(`select * from ${DB_CONSTANTS.SPEAKERS_DB}`)
+        message.result.speakers = speakers.rows
+
+        await client.query('COMMIT')
+        message.success = true
+    } catch (e){
+        await client.query('ROLLBACK')
+        console.log("Get search values error: ", e)
+        message = SYSTEM_ERROR
+      } finally {
+        client.end()
+      }
+      return message
+}
 
 
-module.exports = {search}
+module.exports = {
+    search,
+    GetSearchValues
+}
