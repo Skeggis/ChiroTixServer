@@ -1,4 +1,5 @@
 const router = require('express').Router()
+const crypto = require('crypto')
 const ticketHandler = require('../handlers/ticketHandler')
 const {BAD_REQUEST} = require('../Messages')
 
@@ -7,7 +8,7 @@ const { catchErrors } = require('../helpers')
 /**
  * 
  * @param {JSON} req.body:{
- *          buyerId: String,
+ *          buyerId: String, //If empty then it is the initial reservation for tickets.
  *          eventId: Integer,
  *          tickets: [{
  *              ticketId: Integer,
@@ -24,11 +25,11 @@ async function reserveTickets(req, res){
         }
     } = req
 
-    if(!(buyerID && eventID && tickets)){ return res.status(400).json(BAD_REQUEST("Invalid body request.")) }
+    if(!(eventID && tickets)){ return res.status(400).json(BAD_REQUEST("Invalid body request.")) }
     if( tickets.length === 0 ){ return res.status(400).json(BAD_REQUEST("Invalid amount of tickets. Zero tickets not allowed."))}
 
     const data = {
-        buyerID,
+        buyerID= buyerID || crypto.randomBytes(20).toString('hex'),
         eventID,
         tickets
     }
