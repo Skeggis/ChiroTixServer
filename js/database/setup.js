@@ -22,7 +22,11 @@ const {
   TAGS_DB,
   TAGS_CONNECT_DB,
   LOCATIONS_DB,
-  SPEAKERS_CONNECT_DB
+  SPEAKERS_CONNECT_DB,
+  COUNTRIES_DB,
+  CITIES_DB,
+  CATEGORIES_DB,
+  SEARCHEVENTS_DB
 } = process.env
 
 
@@ -54,28 +58,38 @@ async function main() {
   }
 
   // drop tables if exists
-  await query(`DROP TABLE IF EXISTS ${SPEAKERS_CONNECT_DB}, ${SPEAKERS_DB}, ${TICKETS_TYPE_DB}, ${EVENTS_DB}, ${LOCATIONS_DB}, ${TAGS_DB}, ${TAGS_CONNECT_DB}, ${ORGANIZATIONS_DB}`);
-
+  await query(`DROP TABLE IF EXISTS ${SEARCHEVENTS_DB}, ${CITIES_DB}, ${COUNTRIES_DB}, ${SPEAKERS_CONNECT_DB}, ${SPEAKERS_DB}, ${TICKETS_TYPE_DB}, ${EVENTS_DB}, ${LOCATIONS_DB}, ${TAGS_DB}, ${TAGS_CONNECT_DB}, ${ORGANIZATIONS_DB}, ${CATEGORIES_DB}`);
   console.info('Tables deleted');
 
   // create tables from schemas
   try {
-    const locations = await readFileAsync('./sql/locations.sql');
+    const categories = await readFileAsync('./sql/categories.sql');
+    const countries = await readFileAsync('./sql/countries.sql');
+    const cities = await readFileAsync('./sql/cities.sql');
     const events = await readFileAsync('./sql/events.sql');
     const ticketTypes = await readFileAsync('./sql/ticketType.sql')
     const tags = await readFileAsync('./sql/tags.sql')
     const tagsConnect = await readFileAsync('./sql/tagsConnect.sql')
     const speakers = await readFileAsync('./sql/speakers.sql');
     const speakersConnect = await readFileAsync('./sql/speakersConnect.sql');
+    const organizations = await readFileAsync('./sql/organizations.sql');
+    const searchEvents = await readFileAsync('./sql/searchEvents.sql')
+    
 
 
-    await query(locations.toString('utf8'));
+    await query(categories.toString('utf8'));
+    await query(organizations.toString('utf8'));
+    await query(countries.toString('utf8'));
+    await query(cities.toString('utf8'));
     await query(events.toString('utf8'));
     await query(ticketTypes.toString('utf8'));
     await query(tags.toString('utf8'));
     await query(tagsConnect.toString('utf8'));
     await query(speakers.toString('utf8'));
     await query(speakersConnect.toString('utf8'));
+    await query(searchEvents.toString('utf8'))
+
+    await query(`CREATE INDEX textsearch_idx ON ${SEARCHEVENTS_DB} USING GIN (textsearchable_index_col);`)
 
 
     console.info('Tables created');

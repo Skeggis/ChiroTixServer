@@ -29,10 +29,17 @@ function validateInsertEvent(event) {
     })
   }
 
-  if (typeof event.date !== 'string' || !isValidDate(new Date(event.date))) {
+  if (typeof event.startDate !== 'string' || !isValidDate(new Date(event.startDate))) {
     errors.push({
       field: 'date',
-      message: 'Date must be valid'
+      message: 'Start date must be valid'
+    })
+  }
+
+  if (typeof event.endDate !== 'string' || !isValidDate(new Date(event.endDate))) {
+    errors.push({
+      field: 'date',
+      message: 'end date must be valid'
     })
   }
 
@@ -65,13 +72,6 @@ function validateInsertEvent(event) {
     })
   }
 
-  if (typeof event.locationId !== 'number') {
-    errors.push({
-      field: 'locationId',
-      message: 'LocationId must be a number'
-    })
-  }
-
   if (typeof event.latitude !== 'number') {
     errors.push({
       field: 'latitude',
@@ -83,6 +83,69 @@ function validateInsertEvent(event) {
     errors.push({
       field: 'longitude',
       message: 'Longitude must be a number'
+    })
+  }
+
+  if (typeof event.longitude !== 'number') {
+    errors.push({
+      field: 'longitude',
+      message: 'Longitude must be a number'
+    })
+  }
+
+  if (typeof event.category.categoryId !== 'number') {
+    errors.push({
+      field: 'categoryId',
+      message: 'categoryId must be a number'
+    })
+  }
+
+  if (typeof event.category.category !== 'string') {
+    errors.push({
+      field: 'category',
+      message: 'category must be a string'
+    })
+  }
+
+  if(event.finishSellingTime && (typeof event.finishSellingTime === 'string' || !isValidDate(new Date(event.finishSellingTime)))){
+    errors.push({
+      field: 'finishSellingTime',
+      message: 'finishSellingTime must be a valid date'
+    })
+  }
+
+  if (typeof event.CECredits !== 'number') {
+    errors.push({
+      field: 'CECredits',
+      message: 'CECredits must be a number'
+    })
+  }
+
+  if (typeof event.organization.organizationId !== 'number') {
+    errors.push({
+      field: 'organizationId',
+      message: 'organizationId must be a number'
+    })
+  }
+
+  if (typeof event.organization.organization !== 'string') {
+    errors.push({
+      field: 'organization',
+      message: 'organization must be a string'
+    })
+  }
+
+  if (typeof event.city.cityId !== 'number') {
+    errors.push({
+      field: 'cityId',
+      message: 'cityId must be a number'
+    })
+  }
+
+  if (typeof event.city.city !== 'string') {
+    errors.push({
+      field: 'city',
+      message: 'city must be a string'
     })
   }
 
@@ -162,10 +225,10 @@ function validateUpdateEvent(event, tickets) {
     })
   }
 
-  if (event.locationId && (typeof event.locationId !== 'number')) {
+  if (event.cityId && (typeof event.cityId !== 'number')) {
     errors.push({
-      field: 'locationId',
-      message: 'LocationId must be a number'
+      field: 'cityId',
+      message: 'cityId must be a number'
     })
   }
 

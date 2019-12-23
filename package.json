@@ -8,7 +8,8 @@
     "dev": "nodemon app.js",
     "test": "mocha -R spec --bail --exit=true",
     "setup": "node ./js/database/setup.js",
-    "testing": "mocha ./test/setup/setup.test.js ./test/events/createEvent.test.js"
+    "testing": "mocha -R spec --bail --exit=true ./test/setup/setup.test.js ./test/events/createEvent.test.js",
+    "searchTest": "mocha -R spec --bail --exit=true ./test/setup/setup.test.js ./test/search/searchEvent.test.js"
   },
   "repository": {
     "type": "git",

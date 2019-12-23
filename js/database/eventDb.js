@@ -6,29 +6,38 @@ const formatter = require('../formatter')
 const util = require('util');
 const fs = require('fs');
 const readFileAsync = util.promisify(fs.readFile);
-
-
-const {
-  EVENTS_DB,
-  TICKETS_TYPE_DB,
-  SPEAKERS_DB,
-  SPEAKERS_CONNECT_DB
-} = process.env
+const {DB_CONSTANTS} = require('../helpers')
 
 async function getEventsDb() {
-  return await query(`SELECT * FROM ${EVENTS_DB}`);
+  return await query(`SELECT * FROM ${DB_CONSTANTS.EVENTS_DB}`);
 }
 
+/**
+ * 
+ * @param {Object} event : {
+ *          ALLT í MYEVENT,
+ *          tickets: [{price: Double, name:String, amount:Integer}],
+ *          speakers: [{name:String, id: Integer (iff speaker is a new speaker)}],
+ *          tags: [{id:Integer, tag:String}]
+ * }
+ */
 async function insertEventDb(event) {
+
   const myEvent = {
     name: event.name,
-    date: event.date,
+    startdate: event.startDate,
+    enddate: event.endDate,
     shortdescription: event.shortDescription,
     longdescription: event.longDescription,
     image: event.image,
-    locationid: event.locationId,
+    cityId: event.city.cityId,
     longitude: event.longitude,
-    latitude: event.latitude
+    latitude: event.latitude,
+    categoryid: event.category.categoryId,
+    startsellingtime: event.startSellingTime,
+    finishsellingtime: event.finishSellingTime,
+    cecredits: event.CECredits,
+    organizationid: event.organization.organizationId
   }
   let speakers = event.speakers //[{name:String, id: Integer (iff speaker exists in our db)}]
 
@@ -37,18 +46,20 @@ async function insertEventDb(event) {
   try {
     await client.query('BEGIN')
 
-    const eventQuery = `INSERT INTO ${EVENTS_DB} (name, date, shortdescription, longdescription, image, locationid, longitude, latitude)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`
+    const eventQuery = `INSERT INTO ${DB_CONSTANTS.EVENTS_DB} (name, startdate, enddate, shortdescription, longdescription, image, cityid, longitude, latitude, categoryid,
+      startsellingtime, finishsellingtime, cecredits, organizationid)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8,$9, $10, $11, $12, $13, $14) RETURNING *`
     const eventRes = await client.query(eventQuery, Object.values(myEvent))
+    const eventR = await formatter.formatEvent(eventRes.rows[0])
 
     const ticketValues = []
     event.tickets.forEach(ticket => {
       ticketValues.push(ticket.price, ticket.name, ticket.amount)
     })
-    let ticketQuery = `insert into ${TICKETS_TYPE_DB} (price, name, amount, eventid) values`
+    let ticketQuery = `insert into ${DB_CONSTANTS.TICKETS_TYPE_DB} (price, name, amount, eventid) values`
     let counter = 1;
     for (let j = 0; j < event.tickets.length; j++) {
-      ticketQuery += ` ($${counter}, $${counter + 1}, $${counter + 2}, ${eventRes.rows[0].id})`
+      ticketQuery += ` ($${counter}, $${counter + 1}, $${counter + 2}, ${eventR.id})`
       if (j < event.tickets.length - 1) {
         ticketQuery += ","
       }
@@ -59,30 +70,22 @@ async function insertEventDb(event) {
     await client.query(ticketQuery, ticketValues)
 
     const soldTicketsTable = await readFileAsync('./sql/ticketsSold.sql')
-    const ticketsSoldTableName = `ticketssold_${eventRes.rows[0].id}`
+    const ticketsSoldTableName = `ticketssold_${eventR.id}`
     await client.query(`CREATE TABLE ${ticketsSoldTableName} ${soldTicketsTable.toString('utf8')}`)
 
-    await client.query(`UPDATE ${EVENTS_DB} SET ticketstablename = '${ticketsSoldTableName}' WHERE id = ${eventRes.rows[0].id}`)//TODO: Move into the original insert?
+    await client.query(`UPDATE ${DB_CONSTANTS.EVENTS_DB} SET ticketstablename = '${ticketsSoldTableName}' WHERE id = ${eventR.id}`)//TODO: Move into the original insert?
 
     //need to check if speaker already exists before we create new
     //and need to check if old speaker is already connected to event
     let newSpeakers = []
-    let insertNewSpeakersQuery = `insert into ${SPEAKERS_DB} (name) values`
+    let insertNewSpeakersQuery = `insert into ${DB_CONSTANTS.SPEAKERS_DB} (name) values`
     let oldSpeakers = []
     let speakerErrors=[]
-    speakers.forEach((speaker, i) => {
-      if (speaker.id) {
-        const check = await client.query(`select * from ${SPEAKERS_CONNECT_DB} where speakerid = $1 and eventid = $2`, [speaker.id, eventRes.rows[0].id])
-        if(check.rowCount > 0){
-          speakerErrors.push({
-            message: 'Speaker is already assigned to this event'
-          })
-        } else {
-          oldSpeakers.push(speaker)
-        }
-      }
+    for(let i = 0; i < speakers.length; i++){
+      let speaker = speakers[i]
+      if (speaker.id) { oldSpeakers.push(speaker) }
       else {
-        const check = await client.query(`select * from ${SPEAKERS_DB} where name = $1`, [speaker.name])
+        const check = await client.query(`select * from ${DB_CONSTANTS.SPEAKERS_DB} where name = $1`, [speaker.name])
         if(check.rowCount > 0){
           speakerErrors.push({
             message: 'A speaker with this name already exists'
@@ -93,9 +96,8 @@ async function insertEventDb(event) {
           insertNewSpeakersQuery += ` ('${speaker.name}')`
         }
       }
-    })
+    }
     insertNewSpeakersQuery += ' returning *'
-
 
     if(speakerErrors.length > 0) {
       return {
@@ -112,16 +114,67 @@ async function insertEventDb(event) {
 
     theSpeakers = oldSpeakers.concat(theSpeakers)
 
-    let connectSpeakersToEventQuery = `insert into ${SPEAKERS_CONNECT_DB} (eventid, speakerid) values`
-    theSpeakers.forEach((speaker, i) => {
-      connectSpeakersToEventQuery += ` (${eventRes.rows[0].id}, ${speaker.id})`
+    let connectSpeakersToEventQuery = `insert into ${DB_CONSTANTS.SPEAKERS_CONNECT_DB} (eventid, speakerid) values`
+
+    let speakersIds = []
+    let speakersNames = []
+    for(let i = 0; i < theSpeakers.length; i++){
+      let speaker = theSpeakers[i]
+      connectSpeakersToEventQuery += ` (${eventR.id}, ${speaker.id})`
       if (i < theSpeakers.length - 1) {
         connectSpeakersToEventQuery += ','
       }
-    })
+      speakersIds.push(speaker.id)
+      speakersNames.push(speaker.name)
+    }
     console.log(connectSpeakersToEventQuery)
 
     await client.query(connectSpeakersToEventQuery)
+
+    //Connect the tags to this Event
+    let tagIds = []
+    let tags = []
+    if(event.tags.length > 0){
+      let tagsConnectQuery = `insert into ${DB_CONSTANTS.TAGS_CONNECT_DB} (eventid, tagid) values `
+      for(let i = 0; i < event.tags.length; i++){
+        if(i != 0){tagsConnectQuery += ","}
+        tagsConnectQuery += `(${eventR.id},${event.tags[i].id})`
+        tagIds.push(event.tags[i].id)
+        tags.push(event.tags[i].tag)
+      }
+      await client.query(tagsConnectQuery)
+    }
+    
+    let insertSearchQuery = `insert into ${DB_CONSTANTS.SEARCHEVENTS_DB} (eventid, name, organizationid, countryid, cityid,
+      startdate, enddate, minprice, maxprice, tagsids, speakersids, cecredits, categoryid, description, organization, country, city, speakers, tags) 
+      values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14, $15, $16, $17, $18, $19) returning *`
+    let minPrice = Infinity
+    let maxPrice = 0
+    for(let i = 0; i < event.tickets.length; i++){
+      if(minPrice > event.tickets[i].price){minPrice = event.tickets[i].price}
+      if(maxPrice < event.tickets[i].price){maxPrice = event.tickets[i].price}
+    }
+    let cityResult = await client.query(`select * from ${DB_CONSTANTS.CITIES_DB}`)
+    let countryId = cityResult.rows[0].countryid
+    let countryResult = await client.query(`select * from ${DB_CONSTANTS.COUNTRIES_DB}`)
+    let country = countryResult.rows[0].country
+    const searchEventValues = [eventR.id, event.name, event.organization.organizationId, countryId, event.city.cityId, 
+      event.startDate, event.endDate, minPrice, maxPrice, tagIds || [], speakersIds, event.CECredits, 
+      event.category.categoryId, event.longDescription + " " + event.shortDescription, event.organization.organization,
+      country, event.city.city, speakersNames, tags]
+
+    let searchTableResult = await client.query(insertSearchQuery, searchEventValues)
+
+    let updateQueryForTextSearch = `update ${DB_CONSTANTS.SEARCHEVENTS_DB} set textsearchable_index_col = 
+      ( setweight(to_tsvector('english', name), 'A')  ||  
+                           setweight(to_tsvector('english', description), 'C') ||
+                           setweight(to_tsvector('english', organization), 'B') ||
+                           setweight(to_tsvector('english', country), 'B') ||
+                           setweight(to_tsvector('english', array_to_string(speakers, ' ')), 'B') ||
+                           setweight(to_tsvector('english', city), 'B') ||
+                           setweight(to_tsvector('english', array_to_string(tags, ' ')), 'B')
+                           ) where id = ${searchTableResult.rows[0].id}`
+    await client.query(updateQueryForTextSearch)
 
     await client.query('COMMIT')
     success = true
@@ -151,10 +204,11 @@ async function updateEventDb(id, event) {
       }
       counter += 1
     });
-    let q = `UPDATE ${EVENTS_DB} set ${t} WHERE id = $${counter += 1}`
+    let q = `UPDATE ${DB_CONSTANTS.EVENTS_DB} set ${t} WHERE id = $${counter += 1}`
     await client.query(q, [...Object.values(event), id])
 
 
+    //Update the searchTable!!!! TODO
 
 
     await client.query('COMMIT')
@@ -202,7 +256,7 @@ async function updateTicketsTypeDb(id, tickets) {
     //You can always add new tickets, even if event has started
     //new tickets
     if (newTickets.length > 0) {
-      let newTicketsQuery = `INSERT INTO ${TICKETS_TYPE_DB} (name, price, amount, eventid) values`
+      let newTicketsQuery = `INSERT INTO ${DB_CONSTANTS.TICKETS_TYPE_DB} (name, price, amount, eventid) values`
       let counter = 2;
       for (let i = 0; i < newTickets.length; i += 1) {
         newTicketsQuery += `($${counter}, $${counter + 1}, $${counter + 2}, $1)`
@@ -218,7 +272,7 @@ async function updateTicketsTypeDb(id, tickets) {
 
     const ticketErrors = []
     if (oldTickets.length > 0) {
-      const currentSellingTime = await client.query(`SELECT startsellingtime FROM ${EVENTS_DB} WHERE id = $1`, [id])
+      const currentSellingTime = await client.query(`SELECT startsellingtime FROM ${DB_CONSTANTS.EVENTS_DB} WHERE id = $1`, [id])
       if (new Date(currentSellingTime.rows[0].startsellingtime) < new Date()) {
         //The event has started selling tickets. Can not change name or price of ticket, 
         //but allowed to change amount based on how many are sold and reserved and allowd to add a new ticket
@@ -229,7 +283,7 @@ async function updateTicketsTypeDb(id, tickets) {
             ticketErrors.push({ ticketId: ticket.id, message: 'You can not change the price of a ticket that has startd selling' })
           } else if (ticket.amount) {
             //check if ticket exists:
-            const check = await client.query(`SELECT * FROM ${TICKETS_TYPE_DB} WHERE id = $1`, [ticket.id])
+            const check = await client.query(`SELECT * FROM ${DB_CONSTANTS.TICKETS_TYPE_DB} WHERE id = $1`, [ticket.id])
             if (check.rowCount === 0) {
               ticketErrors.push({
                 message: 'This ticket does not exist',
@@ -237,11 +291,11 @@ async function updateTicketsTypeDb(id, tickets) {
               })
             } else {
               //Lets check the min number of tickets the user can change to
-              const ticketsTableName = await client.query(`SELECT ticketstablename FROM ${EVENTS_DB} WHERE id = $1`, [id])
+              const ticketsTableName = await client.query(`SELECT ticketstablename FROM ${DB_CONSTANTS.EVENTS_DB} WHERE id = $1`, [id])
               const soldOrReserved = await client.query(`SELECT * FROM ${ticketsTableName.rows[0].ticketstablename}`) //ticket is inserted into table if it is reserved
 
               if (ticket.amount >= soldOrReserved.rowCount) {
-                const amountQuery = `UPDATE ${TICKETS_TYPE_DB} SET amount = $1 WHERE id = $2`
+                const amountQuery = `UPDATE ${DB_CONSTANTS.TICKETS_TYPE_DB} SET amount = $1 WHERE id = $2`
                 await client.query(amountQuery, [ticket.amount, ticket.id])
               } else {
                 ticketErrors.push({
@@ -256,7 +310,7 @@ async function updateTicketsTypeDb(id, tickets) {
       } else {//Ticket has not started selling so you can update everything about it
         oldTickets.forEach(async ticket => {
           //check if ticket exists
-          const check = await client.query(`SELECT * FROM ${TICKETS_TYPE_DB} WHERE id = $1`, [ticket.id])
+          const check = await client.query(`SELECT * FROM ${DB_CONSTANTS.TICKETS_TYPE_DB} WHERE id = $1`, [ticket.id])
           if (check.rowCount === 0) {
             ticketErrors.push({
               ticketId: ticket.id,
@@ -277,7 +331,7 @@ async function updateTicketsTypeDb(id, tickets) {
                 values.push(ticket[key])
               }
             })
-            const q = `UPDATE ${TICKETS_TYPE_DB} SET ${t} where id = $1`
+            const q = `UPDATE ${DB_CONSTANTS.TICKETS_TYPE_DB} SET ${t} where id = $1`
             await client.query(q, [ticket.id, ...values])
           }
 
@@ -324,10 +378,10 @@ async function updateSpeakersForEvent(eventId, speaker) {
     let speakerErrors = []
     newSpeakers.forEach(async speaker => {
       //check if name exists already
-      const check = await client.query(`select 1 from ${SPEAKERS_DB} WHERE name = $1`, [speaker.name])
+      const check = await client.query(`select 1 from ${DB_CONSTANTS.SPEAKERS_DB} WHERE name = $1`, [speaker.name])
       if (check.rowCount === 0) {
-        await client.query(`insert into ${SPEAKERS_DB} (name) values ($1) returning *`, [speaker.name])
-        await client.query(`insert into ${SPEAKERS_CONNECT_DB} (eventid, speakerid) values ($1, $2)`, [eventId, speaker.id])
+        await client.query(`insert into ${DB_CONSTANTS.SPEAKERS_DB} (name) values ($1) returning *`, [speaker.name])
+        await client.query(`insert into ${DB_CONSTANTS.SPEAKERS_CONNECT_DB} (eventid, speakerid) values ($1, $2)`, [eventId, speaker.id])
       } else {
         speakerErrors.push({
           message: `Speaker with name ${speaker.name} already exists`
@@ -336,20 +390,20 @@ async function updateSpeakersForEvent(eventId, speaker) {
     })
 
     oldSpeakers.forEach(async speaker => {
-      const check = await client.query(`select * from ${SPEAKERS_DB} where id = $1`, [speaker.id])
+      const check = await client.query(`select * from ${DB_CONSTANTS.SPEAKERS_DB} where id = $1`, [speaker.id])
       if (check.rowCount === 0) {
         speakerErrors.push({
           message: 'Speaker does not exist'
         })
       } else {
         //chekcif speaker is already assigned to event
-        const check = await client.query(`select * from ${SPEAKERS_CONNECT_DB} where eventid = $1 AND speakerid = $2`, [eventId, speaker.id])
+        const check = await client.query(`select * from ${DB_CONSTANTS.SPEAKERS_CONNECT_DB} where eventid = $1 AND speakerid = $2`, [eventId, speaker.id])
         if (check.rowCount > 0) {
           speakerErrors.push({
             message: 'This speaker is already assigned to this event'
           })
         } else {
-          await client.query(`insert into ${SPEAKERS_CONNECT_DB} (eventid, speakerid) values ($1, $2)`, [event.id, speaker.id])
+          await client.query(`insert into ${DB_CONSTANTS.SPEAKERS_CONNECT_DB} (eventid, speakerid) values ($1, $2)`, [event.id, speaker.id])
         }
       }
     })
@@ -366,13 +420,13 @@ async function updateSpeakersForEvent(eventId, speaker) {
 }
 
 async function getEventByIdDb(id) {
-  const result = await query(`SELECT * FROM ${EVENTS_DB} WHERE id = $1`, [id])
+  const result = await query(`SELECT * FROM ${DB_CONSTANTS.EVENTS_DB} WHERE id = $1`, [id])
   return result
 }
 
 
 async function getEventsDb() {
-  return await query(`SELECT * FROM ${EVENTS_DB}`);
+  return await query(`SELECT * FROM ${DB_CONSTANTS.EVENTS_DB}`);
 }
 
 
