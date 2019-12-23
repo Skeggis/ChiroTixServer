@@ -28,7 +28,7 @@ const featuredLimit = 15
  *              
  * }
  */
-function search({searchString='', organizations=[], countries=[],
+async function search({searchString='', organizations=[], countries=[],
 cities=[], categories=[], tags=[], speakers=[],  dates={},price={},CECredits={}}){
     let query = `select * from ${DB_CONSTANTS.SEARCHEVENTS_DB} where`
     let zingle = false

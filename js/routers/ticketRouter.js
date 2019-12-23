@@ -3,8 +3,6 @@ const ticketHandler = require('../handlers/ticketHandler')
 const {BAD_REQUEST} = require('../Messages')
 
 const { catchErrors } = require('../helpers')
-
-const router = Router()
 /**
  * 
  * @param {JSON} req.body:{
