@@ -27,7 +27,7 @@ async function query(sqlQuery, values = []) {
     result = await client.query(sqlQuery, values);
   } catch (err) {
     console.error('Error executing query', err);
-    throw err;
+    // throw err;
   } finally {
     await client.end();
   }

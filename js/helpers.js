@@ -1,3 +1,4 @@
+require('dotenv').config()
 /**
 * @param {function} fn - Async function to be wrapped into an error catching function.
 *
@@ -24,8 +25,32 @@ function errorHandler(err, req, res, next) {
   return res.status(500).json({ error: 'Internal server error' });
 }
 
+function isValidDate(d){
+  return d instanceof Date && !isNaN(d);
+}
+
+
+const DB_CONSTANTS = {
+  TAGS_DB,
+  TAGS_CONNECT_DB,
+  EVENTS_DB,
+  SPEAKERS_DB,
+  SPEAKERS_CONNECT_DB,
+  LOCATIONS_DB,
+  ORGANIZATIONS_DB,
+  CATEGORIES_DB,
+  SEARCH_EVENTS_DB,
+  CITIES_DB,
+  COUNTRIES_DB,
+  EVENTS_INFO_VIEW
+} = process.env;
+
+
+
 module.exports = {
   catchErrors,
   notFoundHandler,
-  errorHandler
+  errorHandler,
+  isValidDate,
+  DB_CONSTANTS
 }

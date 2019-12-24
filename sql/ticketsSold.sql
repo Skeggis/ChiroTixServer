@@ -1,11 +1,13 @@
 (
      id serial PRIMARY key,
+     name varchar(255),
      eventid integer not null,
-     ticketid integer not null,
-     receipt jsonb default '',
+     tickettypeid integer not null,
+     price numeric(15,6) CHECK (price >= 0) NOT null,
+     receipt jsonb default '{}',
      issold boolean not null default false,
-     buyerid text,
-     buyerinfo jsonb default '',
-     ownerinfo jsonb not null,
+     buyerid text not null,
+     buyerinfo jsonb not null default '{}',
+     ownerinfo jsonb default '{}',
      DATE timestamptz NOT NULL DEFAULT current_timestamp
 );
