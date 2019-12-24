@@ -146,11 +146,19 @@ async function uploadEventImageRoute(req, res){
       }
     )
   })
-
-
 }
 
+async function getEvent(req, res){
+  const { id } = req.params
+  let response = await getEventById(id)
+  res.json(response)
+}
+
+
+
+
 router.get('/events', catchErrors(getEventsRoute))
+router.get('/event/:id', catchErrors(getEvent))
 router.post('/events', catchErrors(insertEventRoute))
 router.patch('/events/:id', catchErrors(updateEventRoute))
 router.post('/eventImage', catchErrors(uploadEventImageRoute))

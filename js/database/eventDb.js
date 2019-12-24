@@ -145,7 +145,7 @@ async function insertEventDb(event) {
       await client.query(tagsConnectQuery)
     }
     
-    let insertSearchQuery = `insert into ${DB_CONSTANTS.SEARCHEVENTS_DB} (eventid, name, organizationid, countryid, cityid,
+    let insertSearchQuery = `insert into ${DB_CONSTANTS.SEARCH_EVENTS_DB} (eventid, name, organizationid, countryid, cityid,
       startdate, enddate, minprice, maxprice, tagsids, speakersids, cecredits, categoryid, description, organization, country, city, speakers, tags) 
       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14, $15, $16, $17, $18, $19) returning *`
     let minPrice = Infinity
@@ -165,7 +165,7 @@ async function insertEventDb(event) {
 
     let searchTableResult = await client.query(insertSearchQuery, searchEventValues)
 
-    let updateQueryForTextSearch = `update ${DB_CONSTANTS.SEARCHEVENTS_DB} set textsearchable_index_col = 
+    let updateQueryForTextSearch = `update ${DB_CONSTANTS.SEARCH_EVENTS_DB} set textsearchable_index_col = 
       ( setweight(to_tsvector('english', name), 'A')  ||  
                            setweight(to_tsvector('english', description), 'C') ||
                            setweight(to_tsvector('english', organization), 'B') ||
@@ -419,14 +419,25 @@ async function updateSpeakersForEvent(eventId, speaker) {
   return success
 }
 
-async function getEventByIdDb(id) {
-  const result = await query(`SELECT * FROM ${DB_CONSTANTS.EVENTS_DB} WHERE id = $1`, [id])
-  return result
-}
-
 
 async function getEventsDb() {
   return await query(`SELECT * FROM ${DB_CONSTANTS.EVENTS_DB}`);
+}
+
+async function getEventByIdDb(id){
+  let eventQuery = `select * from ${DB_CONSTANTS.EVENTS_INFO_VIEW} where eventid = ${id}`
+  let result = await query(eventQuery)
+  let {eventInfo} = await formatter.formatEventInfoView(result.rows)
+  let tagsQuery = `select * from ${DB_CONSTANTS.TAGS_CONNECT_DB} inner join ${TAGS_DB} on 
+  ${DB_CONSTANTS.TAGS_CONNECT_DB}.tagid = ${TAGS_DB}.id where eventid = ${id}`
+  let tagsResult = await query(tagsQuery)
+  eventInfo.tags = tagsResult.rows
+  let speakersQuery = `select * from ${DB_CONSTANTS.SPEAKERS_CONNECT_DB} inner join ${DB_CONSTANTS.SPEAKERS_DB} on 
+  ${DB_CONSTANTS.SPEAKERS_CONNECT_DB}.speakerid = ${DB_CONSTANTS.SPEAKERS_DB}.id where eventid = ${id};`
+  let speakersResult = await query(speakersQuery)
+  eventInfo.speakers = speakersResult.rows
+
+  return {eventInfo}
 }
 
 

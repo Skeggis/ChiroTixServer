@@ -1,8 +1,19 @@
-let crypto;
-try {
-  crypto = require('crypto');
-  console.log("YEA")
-  console.log(crypto.randomBytes(20).toString('Hex'))
-} catch (err) {
-  console.log('crypto support is disabled!');
+function test(){
+  // let t = setInterval(() => {
+  //   bro()
+  //   clearInterval(t)
+  // }, 1000)
+
+  let t = setTimeout(() => {
+    clearTimeout(t)
+    bro()
+    
+  }, 1000)
+
+  
+
 }
+
+let bro = () => {console.log("BRO")}
+
+test()

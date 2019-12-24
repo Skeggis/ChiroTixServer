@@ -8,26 +8,12 @@ require('dotenv').config();
 
 const fs = require('fs');
 const util = require('util');
+const {DB_CONSTANTS} = require('../helpers')
 
 const { query } = require('./db');
 
 const connectionString = process.env.DATABASE_URL;
 const readFileAsync = util.promisify(fs.readFile);
-
-const {
-  EVENTS_DB,
-  TICKETS_TYPE_DB,
-  ORGANIZATIONS_DB,
-  SPEAKERS_DB,
-  TAGS_DB,
-  TAGS_CONNECT_DB,
-  LOCATIONS_DB,
-  SPEAKERS_CONNECT_DB,
-  COUNTRIES_DB,
-  CITIES_DB,
-  CATEGORIES_DB,
-  SEARCHEVENTS_DB
-} = process.env
 
 
 
@@ -41,11 +27,11 @@ async function main() {
     SELECT 1 
     FROM   pg_catalog.pg_class c
     JOIN   pg_catalog.pg_namespace n ON n.oid = c.relnamespace
-    WHERE c.relname = '${EVENTS_DB}'  
+    WHERE c.relname = '${DB_CONSTANTS.EVENTS_DB}'  
     );`)
     
   if (check.rows[0].exists) {
-    const res = await query(`SELECT * FROM ${EVENTS_DB}`)
+    const res = await query(`SELECT * FROM ${DB_CONSTANTS.EVENTS_DB}`)
     let tables
    for(i = 0; i< res.rows.length; i++){
      tables+=res.rows[i].ticketstablename
@@ -57,8 +43,10 @@ async function main() {
     await query(`DROP TABLE IF EXISTS ${tables}`)
   }
 
+  await query(`DROP VIEW IF EXISTS ${DB_CONSTANTS.EVENTS_INFO_VIEW}`)
   // drop tables if exists
-  await query(`DROP TABLE IF EXISTS ${SEARCHEVENTS_DB}, ${CITIES_DB}, ${COUNTRIES_DB}, ${SPEAKERS_CONNECT_DB}, ${SPEAKERS_DB}, ${TICKETS_TYPE_DB}, ${EVENTS_DB}, ${LOCATIONS_DB}, ${TAGS_DB}, ${TAGS_CONNECT_DB}, ${ORGANIZATIONS_DB}, ${CATEGORIES_DB}`);
+  await query(`DROP TABLE IF EXISTS ${DB_CONSTANTS.SEARCH_EVENTS_DB}, ${DB_CONSTANTS.SPEAKERS_CONNECT_DB}, ${DB_CONSTANTS.SPEAKERS_DB}, ${DB_CONSTANTS.TICKETS_TYPE_DB}, 
+  ${DB_CONSTANTS.EVENTS_DB},${DB_CONSTANTS.CITIES_DB}, ${DB_CONSTANTS.COUNTRIES_DB}, ${DB_CONSTANTS.TAGS_DB}, ${DB_CONSTANTS.TAGS_CONNECT_DB}, ${DB_CONSTANTS.ORGANIZATIONS_DB}, ${DB_CONSTANTS.CATEGORIES_DB}`);
   console.info('Tables deleted');
 
   // create tables from schemas
@@ -74,6 +62,7 @@ async function main() {
     const speakersConnect = await readFileAsync('./sql/speakersConnect.sql');
     const organizations = await readFileAsync('./sql/organizations.sql');
     const searchEvents = await readFileAsync('./sql/searchEvents.sql')
+    const eventsInfoView = await readFileAsync('./sql/eventsInfoView.sql')
     
 
 
@@ -88,8 +77,9 @@ async function main() {
     await query(speakers.toString('utf8'));
     await query(speakersConnect.toString('utf8'));
     await query(searchEvents.toString('utf8'))
+    await query(eventsInfoView.toString('utf8'))
 
-    await query(`CREATE INDEX textsearch_idx ON ${SEARCHEVENTS_DB} USING GIN (textsearchable_index_col);`)
+    await query(`CREATE INDEX textsearch_idx ON ${DB_CONSTANTS.SEARCH_EVENTS_DB} USING GIN (textsearchable_index_col);`)
 
 
     console.info('Tables created');

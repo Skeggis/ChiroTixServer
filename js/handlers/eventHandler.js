@@ -76,7 +76,7 @@ async function updateEvent(id, event, tickets){
 
 async function getEventById(id){
   const result = await getEventByIdDb(id)
-  return result.rows[0]
+  return result
 }
 
 module.exports = {
