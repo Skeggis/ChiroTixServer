@@ -15,6 +15,7 @@ create table events (
   startsellingtime TIMESTAMPTZ,
   finishsellingtime TIMESTAMPTZ,
   cecredits Int,
+  ownerinfo JSONB[], --The info necessery for the buyer to insert for each ticket bought (for each owner of a ticket he buys)
   insertDate TIMESTAMPTZ default current_timestamp
 );
 

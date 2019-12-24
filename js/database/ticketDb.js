@@ -2,18 +2,20 @@ require('dotenv').config();
 const db = require('./db');
 const formatter = require('../formatter')
 const {SYSTEM_ERROR} = require('../Messages')
+const {DB_CONSTANTS} = require('../helpers')
 
-const {
-    TICKETS_TYPE_DB,
-    EVENTS_DB
-} = process.env;
-
-
+async function getEventInfoWithTicketTypes(eventId){
+    let query = `select * from ${DB_CONSTANTS.EVENTS_INFO_VIEW} where eventid=${eventId}`
+    console.log(query)
+    let result = await db.query(query)
+    if(!result.rows[0]) {return false}
+    return await formatter.formatEventInfoView(result.rows)
+}
 /**
  * @param {Integer} eventId
  * @param {String} buyerId
  * @param {Array} tickets : [{
- *                  ticketId: Integer,
+ *                  ticketTypeId: Integer,
  *                  id: Integer, //This is the id of the ticket in the SoldTable!
  *                  ownerInfo: {
  *                          name: String,
@@ -35,15 +37,15 @@ async function buyTickets(eventId, buyerId, tickets, buyerInfo, receipt){
     try {
         await client.query('BEGIN')
 
-        let query = `Select * from ${EVENTS_DB} where id=${eventId}`
+        let query = `Select * from ${DB_CONSTANTS.EVENTS_DB} where id=${eventId}`
         const eventInfo = await client.query(query)
         const eventTicketsTable = eventInfo.rows[0].ticketstablename
 
         for(let j = 0; j < tickets.length; j++){ 
             let ticket = tickets[j]
-            //Using ticket.id, not ticket.ticketId, because it is referring to the id in the sold table
+            //Using ticket.id, not ticket.ticketTypeId, because it is referring to the id in the sold table
             let q = `update ${eventTicketsTable} set (issold, buyerinfo, ownerinfo, receipt) = ($1,$2,$3,$4) where buyerid = '${buyerId}' and id = ${ticket.id}`
-            const values = [true, buyerInfo, ticket.ownerInfo, receipt]
+            const values = [true, JSON.stringify(buyerInfo), JSON.stringify(ticket.ownerInfo), JSON.stringify(receipt)]
             await client.query(q, values)   
         }
 
@@ -51,15 +53,15 @@ async function buyTickets(eventId, buyerId, tickets, buyerInfo, receipt){
          let ticketTypes = []
          for(let j = 0; j < tickets.length; j++){  
              let ticket = tickets[j]
-            if(!ticketTypes[ticket.ticketId]) { ticketTypes[ticket.ticketId] = 1 }
-            else { ticketTypes[tickets[j].ticketId]++ }
+            if(!ticketTypes[ticket.ticketTypeId]) { ticketTypes[ticket.ticketTypeId] = 1 }
+            else { ticketTypes[tickets[j].ticketTypeId]++ }
         }
  
         //Update the TicketType DB, i.e. remove the reserved tickets from reserved to sold.
          let ticketTypeIds = Object.keys(ticketTypes)
          for(let j = 0; j < ticketTypeIds.length; j++){
-             let ticketId = ticketTypeIds[j]
-             let q = `update ${TICKETS_TYPE_DB} set reserved = reserved - ${ticketTypes[ticketId]}, sold = sold + ${ticketTypes[ticketId]} where id = ${ticketId}`
+             let ticketTypeId = ticketTypeIds[j]
+             let q = `update ${DB_CONSTANTS.TICKETS_TYPE_DB} set reserved = reserved - ${ticketTypes[ticketTypeId]}, sold = sold + ${ticketTypes[ticketTypeId]} where id = ${ticketTypeId}`
              await client.query(q) 
          }
 
@@ -88,9 +90,9 @@ async function buyTickets(eventId, buyerId, tickets, buyerInfo, receipt){
  * @param {String} buyerId 
  */
 async function getAllReservedTicketsForBuyer(buyerId, eventId){
-    let query = `Select * from ${EVENTS_DB} where id=${eventId}`
+    let query = `Select * from ${DB_CONSTANTS.EVENTS_DB} where id=${eventId}`
     let result = await db.query(query)
-    if(!result.rows[0]) {return null}
+    if(!result || !result.rows[0]) {return null}
     let soldTicketsTableName = result.rows[0].ticketstablename
 
     query = `Select * from ${soldTicketsTableName} where buyerid='${buyerId}' and issold=false`
@@ -107,7 +109,7 @@ async function getAllReservedTicketsForBuyer(buyerId, eventId){
  * @param {String} buyerId
  */
 async function getReservedTickets(reservedTicketIds, eventId, buyerId){
-    let query = `Select * from ${EVENTS_DB} where id=${eventId}`
+    let query = `Select * from ${DB_CONSTANTS.EVENTS_DB} where id=${eventId}`
     let result = await db.query(query)
     if(!result.rows[0]) {return null}
     let soldTicketsTableName = result.rows[0].ticketstablename
@@ -120,23 +122,24 @@ async function getReservedTickets(reservedTicketIds, eventId, buyerId){
 }
 
 /**
- * @param {Array} ticketIds : [Integer]
+ * @param {Array} ticketTypeIds : [Integer]
  */
-async function getTicketTypes(ticketIds){
-    let query = `select * from ${TICKETS_TYPE_DB} where id=Any('{${ticketIds.toString()}}')`
+async function getTicketTypes(ticketTypeIds){
+    let query = `select * from ${DB_CONSTANTS.TICKETS_TYPE_DB} where id=Any('{${ticketTypeIds.toString()}}')`
     let ticketTypes = await db.query(query)
+    if(!ticketTypes){return false}
     return await formatter.formatTicketTypes(ticketTypes.rows)
 }
 
 /**
  * @param {Integer} eventId
  * @param {String} buyerId
- * @param {Array} tickets : [{
- *                  ticketId: Integer,
+ * @param {Array} ticketTypes : [{
+ *                  id: Integer,
  *                  amount: Integer
  *              }]
  */
-async function reserveTickets(eventId, buyerId, tickets){
+async function reserveTickets(eventId, buyerId, ticketTypes){
     let message = {
         success: false,
         messages: []
@@ -145,22 +148,23 @@ async function reserveTickets(eventId, buyerId, tickets){
     try {
         await client.query('BEGIN')
 
-        for(let j = 0; j < tickets.length; j++){ 
-            let ticket = tickets[j]
-            let q = `update ${TICKETS_TYPE_DB} set reserved = reserved + ${ticket.amount} where id=${ticket.ticketId}`
+        for(let j = 0; j < ticketTypes.length; j++){ 
+            let ticketType = ticketTypes[j]
+            let q = `update ${DB_CONSTANTS.TICKETS_TYPE_DB} set reserved = reserved + ${ticketType.amount} where id=${ticketType.id}`
             await client.query(q) 
         }
-        let query = `Select * from ${EVENTS_DB} where id=${eventId}`
+        let query = `Select * from ${DB_CONSTANTS.EVENTS_DB} where id=${eventId}`
         const eventInfo = await client.query(query)
 
         const eventTicketsTable = eventInfo.rows[0].ticketstablename
+        message.ownerInfo = eventInfo.rows[0].ownerinfo
 
-        let multipleInsertQuery = `insert into ${eventTicketsTable} (eventid, ticketid, buyerid) values`
-        for(let j = 0; j < tickets.length; j++){
-            let ticket = tickets[j] 
-            for(let i = 0; i < ticket.amount; i++){
-                multipleInsertQuery += ` (${eventId}, ${ticket.ticketId}, '${buyerId}')`
-                if(j < tickets.length-1 || i < ticket.amount-1){multipleInsertQuery += ","}
+        let multipleInsertQuery = `insert into ${eventTicketsTable} (eventid, tickettypeid, buyerid, price, name) values`
+        for(let j = 0; j < ticketTypes.length; j++){
+            let ticketType = ticketTypes[j] 
+            for(let i = 0; i < ticketType.amount; i++){
+                multipleInsertQuery += ` (${eventId}, ${ticketType.id}, '${buyerId}', ${ticketType.price}, '${ticketType.name}')`
+                if(j < ticketTypes.length-1 || i < ticketType.amount-1){multipleInsertQuery += ","}
                 else {multipleInsertQuery += " returning *;"}
             }
         }
@@ -192,13 +196,13 @@ async function releaseAllTicketsForBuyer(buyerId, eventId){
     let reservedTicketTypesAmount = []
     for(let i = 0; i < reservedTickets.length; i++){ 
         let ticket = reservedTickets[i]
-        if(!reservedTicketTypesAmount[ticket.ticketId]) { reservedTicketTypesAmount[ticket.ticketId] = 1 }
-        else { reservedTicketTypesAmount[ticket.ticketId]++ }
+        if(!reservedTicketTypesAmount[ticket.ticketTypeId]) { reservedTicketTypesAmount[ticket.ticketTypeId] = 1 }
+        else { reservedTicketTypesAmount[ticket.ticketTypeId]++ }
     }
 
     const client = await db.getClient()
     try {
-        let query = `Select * from ${EVENTS_DB} where id=${eventId}`
+        let query = `Select * from ${DB_CONSTANTS.EVENTS_DB} where id=${eventId}`
         const eventInfo = await client.query(query)
         const eventTicketsTable = eventInfo.rows[0].ticketstablename
 
@@ -211,7 +215,7 @@ async function releaseAllTicketsForBuyer(buyerId, eventId){
         for(let i = 0; i < ticketTypesIds.length; i++){
             let id = ticketTypesIds[i]
             let amount = reservedTicketTypesAmount[id]
-            query = `update ${TICKETS_TYPE_DB} set reserved = reserved - ${amount} where id = ${id}`
+            query = `update ${DB_CONSTANTS.TICKETS_TYPE_DB} set reserved = reserved - ${amount} where id = ${id}`
             await client.query(query)
         }
         
@@ -239,7 +243,7 @@ async function releaseTickets(reservedTicketIds, ticketTypesAmount, eventId){
     }
     const client = await db.getClient()
     try {
-        let query = `Select * from ${EVENTS_DB} where id=${eventId}`
+        let query = `Select * from ${DB_CONSTANTS.EVENTS_DB} where id=${eventId}`
         const eventInfo = await client.query(query)
         const eventTicketsTable = eventInfo.rows[0].ticketstablename
 
@@ -252,7 +256,7 @@ async function releaseTickets(reservedTicketIds, ticketTypesAmount, eventId){
         for(let i = 0; i < ticketTypesIds.length; i++){
             let id = ticketTypesIds[i]
             let amount = ticketTypesAmount[id]
-            query = `update ${TICKETS_TYPE_DB} set reserved = reserved - ${amount} where id = ${id}`
+            query = `update ${DB_CONSTANTS.TICKETS_TYPE_DB} set reserved = reserved - ${amount} where id = ${id}`
             await client.query(query)
         }
         
@@ -271,4 +275,4 @@ async function releaseTickets(reservedTicketIds, ticketTypesAmount, eventId){
 
 
 module.exports = {getTicketTypes, reserveTickets, buyTickets, getAllReservedTicketsForBuyer, getReservedTickets,
-                    releaseTickets, releaseAllTicketsForBuyer}
+                    releaseTickets, releaseAllTicketsForBuyer, getEventInfoWithTicketTypes}

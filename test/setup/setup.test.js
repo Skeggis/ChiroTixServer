@@ -16,7 +16,7 @@ const {
     CATEGORIES_DB,
     COUNTRIES_DB,
     CITIES_DB,
-    SEARCHEVENTS_DB
+    SEARCH_EVENTS_DB
 } = process.env;
 
 describe('Setup test environment', async () => {
@@ -41,7 +41,7 @@ describe('Setup test environment', async () => {
             let ticketTable = events.rows[i].ticketstablename
             await db.query(`drop table if exists ${ticketTable}`)
         }
-        await db.query(`delete from ${SEARCHEVENTS_DB}`)
+        await db.query(`delete from ${SEARCH_EVENTS_DB}`)
         await db.query(`delete from ${SPEAKERS_CONNECT_DB}`)
         await db.query(`delete from ${SPEAKERS_DB}`)
 
