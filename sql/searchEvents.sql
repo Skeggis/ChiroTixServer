@@ -20,7 +20,9 @@ create table searchevents (
     cecredits integer,
     categoryid integer references categories(id),
     featurednr integer default 0, --The lower the number the higher likelihood the event will be on the HomePage--
-    textsearchable_index_col tsvector
+    textsearchable_index_col tsvector,
+    image TEXT,
+    shortdescription TEXT
 );
 
 -- textsearchable_index_col = ( setweight(to_tsvector('english',name), 'A')  ||  

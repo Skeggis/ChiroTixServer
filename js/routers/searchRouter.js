@@ -49,8 +49,8 @@ async function search(req, res) {
 }
 
 
-async function GetSearchValuesRoute(req, res) {
-    let result = await searchDb.GetSearchValues()
+async function GetInitialSearchRoute(req, res) {
+    let result = await searchDb.GetInitialSearchDb()
     if (result.success) {
         return res.status(200).json({ success: true, result: result.result })
     }
@@ -58,6 +58,6 @@ async function GetSearchValuesRoute(req, res) {
 }
 
 router.post('/searchEvents', catchErrors(search))
-router.get('/searchValues', catchErrors(GetSearchValuesRoute))
+router.get('/initialSearch', catchErrors(GetInitialSearchRoute))
 
 module.exports = router

@@ -1,4 +1,4 @@
 CREATE TABLE countries(
   id SERIAL PRIMARY KEY,
-  country VARCHAR(255) unique
+  name VARCHAR(255) unique
 );

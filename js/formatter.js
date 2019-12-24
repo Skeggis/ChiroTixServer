@@ -46,8 +46,50 @@ async function formatEvent(event){
         locationId: event.locationid,
         latitude: event.latitude,
         longitude: event.longitude,
-        ticketsTableName: event.ticketstablename
+        ticketsTableName: event.ticketstablename,
     }
+}
+
+function formatSearchEvent(event){
+    return {
+        id: event.id,
+        name: event.name,
+        date: event.date,
+        shortDescription: event.shortdescription,
+        longDescription: event.longdescription,
+        image: event.image,
+        locationId: event.locationid,
+        latitude: event.latitude,
+        longitude: event.longitude,
+        ticketsTableName: event.ticketstablename,
+        organization: event.organization,
+        country: event.country,
+        city: event.city,
+        speakers: event.speakers,
+        tags: event.tags,
+        eventId: event.eventid,
+        organizationId: event.organizationId,
+        countryId: event.countryId,
+        cityId: event.cityId,
+        startDate: event.startdate,
+        endDate: event.endDate,
+        minPrice: event.minprice,
+        maxPrice: event.maxprice,
+        tagsIds: event.tagsids,
+        speakerIds: event.speakerids,
+        CECredits: event.cecredits,
+        categoryId: event.categoryid,
+        featuredNr: event.featurednr,
+        textSearchableIndexCol: event.textsearchable_index_col,
+        image: event.image,
+        shortDescription: event.shortdescription
+    }
+}
+
+function formatSearchEvents(events){
+    let newEvents = []
+    events.map(event => newEvents.push(event))
+    return newEvents
 }
 
 async function formatEvents(events){
@@ -84,4 +126,4 @@ async function formatSpeakers(speakers){
 
 
 module.exports = {formatTicketType, formatTicketTypes, formatEvent, formatEvents, formatTicket, formatTickets,
-                    formatTag, formatTags, formatSpeaker, formatSpeakers}
+                    formatTag, formatTags, formatSpeaker, formatSpeakers, formatSearchEvent, formatSearchEvents}

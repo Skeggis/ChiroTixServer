@@ -1,6 +1,8 @@
 const express = require('express')
 const multer = require('multer')
 const router = express.Router()
+const { BAD_REQUEST } = require('../Messages')
+
 
 
 const { catchErrors } = require('../helpers')
@@ -9,10 +11,12 @@ const {
   getEvents,
   insertEvent,
   updateEvent,
-  getEventById
+  getEventById,
 } = require('../handlers/eventHandler')
 
-
+const {
+  getInsertValuesDb
+} = require('../database/eventDb')
 
 const { 
   validateInsertEvent,
@@ -40,26 +44,41 @@ async function insertEventRoute(req, res){
     name,
     startDate,
     endDate,
+    organization,
+    startSellingTime,
+    finishSellingTime,
     shortDescription,
     longDescription,
     image,
     cityId,
     latitude,
     longitude,
-    tickets
-  } = req.body
+    CECredits,
+    tickets,
+    speakers,
+    tags,
+    category
+  } = req.body.data
+
 
   const event = {
     name,
     startDate,
     endDate, 
+    organization,
+    startSellingTime,
+    finishSellingTime,
     shortDescription,
     longDescription,
     image,
     cityId,
     latitude,
     longitude,
-    tickets
+    CECredits,
+    tickets,
+    speakers,
+    tags,
+    category
   }
 
   const result = await insertEvent(event)
@@ -79,7 +98,6 @@ async function updateEventRoute(req, res){
 
   const {
     name,
-    date,
     shortDescription,
     longDescription,
     image,
@@ -146,14 +164,22 @@ async function uploadEventImageRoute(req, res){
       }
     )
   })
+}
 
+async function getInsertValuesRoute(req, res){
+  const result = await getInsertValuesDb()
+  if(result.success) {
+    return res.status(200).json(result.data)
+  }
 
+  return res.status(404).json(BAD_REQUEST("Could not process the request"))
 }
 
 router.get('/events', catchErrors(getEventsRoute))
 router.post('/events', catchErrors(insertEventRoute))
 router.patch('/events/:id', catchErrors(updateEventRoute))
 router.post('/eventImage', catchErrors(uploadEventImageRoute))
+router.get('/insertValues', catchErrors(getInsertValuesRoute))
 
 
 module.exports = router

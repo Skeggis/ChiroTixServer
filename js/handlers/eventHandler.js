@@ -17,17 +17,21 @@ async function getEvents() {
 
 async function insertEvent(event){
 
-  const errors = validateInsertEvent(event)
+  //TODO: validate
 
-  if(errors.length > 0){
-    return{
-      success: false,
-      messages: errors
-    }
-  }
+  // const errors = validateInsertEvent(event)
+
+  // if(errors.length > 0){
+  //   return{
+  //     success: false,
+  //     messages: errors
+  //   }
+  // }
 
   event.startDate = new Date(event.startDate)
   event.endDate = new Date(event.endDate)
+  event.startSellingTime = new Date(event.startSellingTime)
+  event.finishSellingTime = new Date(event.finishSellingTime)
   const result = await insertEventDb(event)
 
   if(result.success){

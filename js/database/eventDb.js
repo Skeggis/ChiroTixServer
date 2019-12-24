@@ -6,7 +6,7 @@ const formatter = require('../formatter')
 const util = require('util');
 const fs = require('fs');
 const readFileAsync = util.promisify(fs.readFile);
-const {DB_CONSTANTS} = require('../helpers')
+const { DB_CONSTANTS } = require('../helpers')
 
 async function getEventsDb() {
   return await query(`SELECT * FROM ${DB_CONSTANTS.EVENTS_DB}`);
@@ -30,26 +30,41 @@ async function insertEventDb(event) {
     shortdescription: event.shortDescription,
     longdescription: event.longDescription,
     image: event.image,
-    cityId: event.city.cityId,
+    cityId: event.cityId,
     longitude: event.longitude,
     latitude: event.latitude,
-    categoryid: event.category.categoryId,
+    categoryid: event.category,
     startsellingtime: event.startSellingTime,
     finishsellingtime: event.finishSellingTime,
     cecredits: event.CECredits,
-    organizationid: event.organization.organizationId
   }
+  let organization = event.organization // [{name: String, id: Integer (if organization exists in db)}]
   let speakers = event.speakers //[{name:String, id: Integer (iff speaker exists in our db)}]
-
   let success = false
   const client = await getClient()
   try {
     await client.query('BEGIN')
 
+    //create organization if it organization does not have id. Else just insert id
+    let myOrganizationId
+    let myOrganization
+    if(organization.id){
+      myOrganizationId = organization.id
+      myOrganization = await client.query(`select * from ${ORGANIZATIONS_DB} where id = $1`, [organization.id])
+      myOrganization = myOrganization.rows[0]
+    } else {
+      myOrganization = await client.query(`insert into ${DB_CONSTANTS.ORGANIZATIONS_DB} (name) values ($1) returning *`, [organization.name])
+      myOrganizationId = myOrganization.rows[0].id
+      myOrganization = myOrganization.rows[0]
+    }
+
+  
+console.log('her')
+
     const eventQuery = `INSERT INTO ${DB_CONSTANTS.EVENTS_DB} (name, startdate, enddate, shortdescription, longdescription, image, cityid, longitude, latitude, categoryid,
       startsellingtime, finishsellingtime, cecredits, organizationid)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8,$9, $10, $11, $12, $13, $14) RETURNING *`
-    const eventRes = await client.query(eventQuery, Object.values(myEvent))
+    const eventRes = await client.query(eventQuery, [...Object.values(myEvent), myOrganizationId])
     const eventR = await formatter.formatEvent(eventRes.rows[0])
 
     const ticketValues = []
@@ -80,13 +95,18 @@ async function insertEventDb(event) {
     let newSpeakers = []
     let insertNewSpeakersQuery = `insert into ${DB_CONSTANTS.SPEAKERS_DB} (name) values`
     let oldSpeakers = []
-    let speakerErrors=[]
-    for(let i = 0; i < speakers.length; i++){
+    let speakerErrors = []
+  
+    for (let i = 0; i < speakers.length; i++) {
       let speaker = speakers[i]
-      if (speaker.id) { oldSpeakers.push(speaker) }
+      if (speaker.id) {
+        //Get the name of the old speaker
+        const oldSpeaker = await client.query(`select name from ${DB_CONSTANTS.SPEAKERS_DB} where id = $1`, [speaker.id])
+         oldSpeakers.push({name: oldSpeaker.rows[0].name, id: speaker.id})
+        }
       else {
         const check = await client.query(`select * from ${DB_CONSTANTS.SPEAKERS_DB} where name = $1`, [speaker.name])
-        if(check.rowCount > 0){
+        if (check.rowCount > 0) {
           speakerErrors.push({
             message: 'A speaker with this name already exists'
           })
@@ -98,8 +118,8 @@ async function insertEventDb(event) {
       }
     }
     insertNewSpeakersQuery += ' returning *'
-
-    if(speakerErrors.length > 0) {
+    console.log(speakerErrors)
+    if (speakerErrors.length > 0) {
       return {
         success: false,
         messages: speakerErrors
@@ -109,16 +129,16 @@ async function insertEventDb(event) {
     let theSpeakers = []
     if (newSpeakers.length != 0) {
       let newSpeakersResult = await client.query(insertNewSpeakersQuery)
+      console.log(newSpeakersResult.rows)
       theSpeakers = await formatter.formatSpeakers(newSpeakersResult.rows)
     }
-
+console.log('old', oldSpeakers)
     theSpeakers = oldSpeakers.concat(theSpeakers)
-
+console.log(theSpeakers)
     let connectSpeakersToEventQuery = `insert into ${DB_CONSTANTS.SPEAKERS_CONNECT_DB} (eventid, speakerid) values`
-
     let speakersIds = []
     let speakersNames = []
-    for(let i = 0; i < theSpeakers.length; i++){
+    for (let i = 0; i < theSpeakers.length; i++) {
       let speaker = theSpeakers[i]
       connectSpeakersToEventQuery += ` (${eventR.id}, ${speaker.id})`
       if (i < theSpeakers.length - 1) {
@@ -127,41 +147,48 @@ async function insertEventDb(event) {
       speakersIds.push(speaker.id)
       speakersNames.push(speaker.name)
     }
-    console.log(connectSpeakersToEventQuery)
+    console.log(speakersNames)
 
     await client.query(connectSpeakersToEventQuery)
 
+
     //Connect the tags to this Event
+
+    //Todo: remove functionality that user can insert whatever tag he wants. Must be in database
     let tagIds = []
     let tags = []
-    if(event.tags.length > 0){
+    if (event.tags.length > 0) {
       let tagsConnectQuery = `insert into ${DB_CONSTANTS.TAGS_CONNECT_DB} (eventid, tagid) values `
-      for(let i = 0; i < event.tags.length; i++){
-        if(i != 0){tagsConnectQuery += ","}
-        tagsConnectQuery += `(${eventR.id},${event.tags[i].id})`
-        tagIds.push(event.tags[i].id)
-        tags.push(event.tags[i].tag)
+      for (let i = 0; i < event.tags.length; i++) {
+        if (i != 0) { tagsConnectQuery += "," }
+        tagsConnectQuery += `(${eventR.id},${event.tags[i]})`
+        tagIds.push(event.tags[i])
+        const myTag = await client.query(`select name from ${DB_CONSTANTS.TAGS_DB} where id = $1`, [event.tags[i]])
+        console.log(myTag.rows)
+        tags.push(myTag.rows[0].name)
       }
+      console.log(tagsConnectQuery)
       await client.query(tagsConnectQuery)
     }
-    
+
     let insertSearchQuery = `insert into ${DB_CONSTANTS.SEARCHEVENTS_DB} (eventid, name, organizationid, countryid, cityid,
-      startdate, enddate, minprice, maxprice, tagsids, speakersids, cecredits, categoryid, description, organization, country, city, speakers, tags) 
-      values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14, $15, $16, $17, $18, $19) returning *`
+      startdate, enddate, minprice, maxprice, tagsids, speakersids, cecredits, categoryid, description, organization, country, city, speakers, tags, image, shortdescription) 
+      values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14, $15, $16, $17, $18, $19, $20, $21) returning *`
     let minPrice = Infinity
     let maxPrice = 0
-    for(let i = 0; i < event.tickets.length; i++){
-      if(minPrice > event.tickets[i].price){minPrice = event.tickets[i].price}
-      if(maxPrice < event.tickets[i].price){maxPrice = event.tickets[i].price}
+    for (let i = 0; i < event.tickets.length; i++) {
+      if (minPrice > event.tickets[i].price) { minPrice = event.tickets[i].price }
+      if (maxPrice < event.tickets[i].price) { maxPrice = event.tickets[i].price }
     }
-    let cityResult = await client.query(`select * from ${DB_CONSTANTS.CITIES_DB}`)
+    console.log(event)
+    let cityResult = await client.query(`select * from ${DB_CONSTANTS.CITIES_DB} where id = $1`, [event.cityId])
     let countryId = cityResult.rows[0].countryid
-    let countryResult = await client.query(`select * from ${DB_CONSTANTS.COUNTRIES_DB}`)
-    let country = countryResult.rows[0].country
-    const searchEventValues = [eventR.id, event.name, event.organization.organizationId, countryId, event.city.cityId, 
-      event.startDate, event.endDate, minPrice, maxPrice, tagIds || [], speakersIds, event.CECredits, 
-      event.category.categoryId, event.longDescription + " " + event.shortDescription, event.organization.organization,
-      country, event.city.city, speakersNames, tags]
+    let countryResult = await client.query(`select * from ${DB_CONSTANTS.COUNTRIES_DB} where id = $1`, [countryId])
+    let country = countryResult.rows[0].name
+    const searchEventValues = [eventR.id, event.name, myOrganizationId, countryId, event.cityId,
+    event.startDate, event.endDate, minPrice, maxPrice, tagIds || [], speakersIds, event.CECredits,
+    event.category, event.longDescription + " " + event.shortDescription, myOrganization.name,
+      country, cityResult.rows[0].name, speakersNames, tags, event.image, event.shortDescription]
 
     let searchTableResult = await client.query(insertSearchQuery, searchEventValues)
 
@@ -429,6 +456,44 @@ async function getEventsDb() {
   return await query(`SELECT * FROM ${DB_CONSTANTS.EVENTS_DB}`);
 }
 
+async function getInsertValuesDb() {
+  let result ={
+    success: false,
+    data: {}
+  }
+  const client = await getClient()
+  try {
+    await client.query('BEGIN')
+
+    const countries = await client.query(`select * from ${DB_CONSTANTS.COUNTRIES_DB}`)
+    result.data.countries = countries.rows
+
+    const cities = await client.query(`select * from ${DB_CONSTANTS.CITIES_DB}`)
+    result.data.cities = cities.rows
+
+    const tags = await client.query(`select * from ${DB_CONSTANTS.TAGS_DB}`)
+    result.data.tags = tags.rows
+
+    const organizations = await client.query(`select * from ${DB_CONSTANTS.ORGANIZATIONS_DB}`)
+    result.data.organizations = organizations.rows
+
+    const categories = await client.query(`select * from ${DB_CONSTANTS.CATEGORIES_DB}`)
+    result.data.categories = categories.rows
+
+    const speakers = await client.query(`select * from ${DB_CONSTANTS.SPEAKERS_DB}`)
+    result.data.speakers = speakers.rows
+
+    await client.query('COMMIT')
+    result.success = true
+  } catch (e) {
+    await client.query('ROLLBACK')
+    throw e
+  } finally {
+    client.end()
+  }
+  return result
+}
+
 
 
 module.exports = {
@@ -436,5 +501,6 @@ module.exports = {
   insertEventDb,
   getEventByIdDb,
   updateEventDb,
-  updateTicketsTypeDb
+  updateTicketsTypeDb,
+  getInsertValuesDb
 }
