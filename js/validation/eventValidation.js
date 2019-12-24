@@ -93,19 +93,19 @@ function validateInsertEvent(event) {
     })
   }
 
-  if (typeof event.category.categoryId !== 'number') {
-    errors.push({
-      field: 'categoryId',
-      message: 'categoryId must be a number'
-    })
-  }
+  // if (typeof event.category.categoryId !== 'number') {
+  //   errors.push({
+  //     field: 'categoryId',
+  //     message: 'categoryId must be a number'
+  //   })
+  // }
 
-  if (typeof event.category.category !== 'string') {
-    errors.push({
-      field: 'category',
-      message: 'category must be a string'
-    })
-  }
+  // if (typeof event.category.category !== 'string') {
+  //   errors.push({
+  //     field: 'category',
+  //     message: 'category must be a string'
+  //   })
+  // }
 
   if(event.finishSellingTime && (typeof event.finishSellingTime === 'string' || !isValidDate(new Date(event.finishSellingTime)))){
     errors.push({
@@ -121,19 +121,19 @@ function validateInsertEvent(event) {
     })
   }
 
-  if (typeof event.organization.organizationId !== 'number') {
-    errors.push({
-      field: 'organizationId',
-      message: 'organizationId must be a number'
-    })
-  }
+  // if (typeof event.organization.organizationId !== 'number') {
+  //   errors.push({
+  //     field: 'organizationId',
+  //     message: 'organizationId must be a number'
+  //   })
+  // }
 
-  if (typeof event.organization.organization !== 'string') {
-    errors.push({
-      field: 'organization',
-      message: 'organization must be a string'
-    })
-  }
+  // if (typeof event.organization.organization !== 'string') {
+  //   errors.push({
+  //     field: 'organization',
+  //     message: 'organization must be a string'
+  //   })
+  // }
 
   if (typeof event.city.cityId !== 'number') {
     errors.push({
