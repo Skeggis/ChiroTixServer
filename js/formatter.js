@@ -72,7 +72,7 @@ async function formatEventInfoView(rows){
         latitude: rows[0].latitude,
         longitude: rows[0].longitude,
         CECredits: rows[0].cecredits,
-        ownerInfo: rows[0].ownerinfo
+        //ownerInfo: rows[0].ownerinfo
     }
 
     let ticketTypes = []
@@ -83,8 +83,9 @@ async function formatEventInfoView(rows){
             id: rows[i].tickettypeid,
             price: rows[i].ticketprice,
             name: rows[i].ticketname,
-            amount: 0
-        })
+            amount: 0,
+            ownerInfo: rows[i].ownerinfo
+        }) 
         if(rows[i].ticketprice < lowPrice){lowPrice = rows[i].ticketprice}
         if(rows[i].ticketprice > maxPrice){maxPrice = rows[i].ticketprice}
     }
@@ -102,7 +103,7 @@ function getDateRange(startDate, endDate){
 
 function formatSearchEvent(event){
     return {
-        id: event.id,
+        id: event.eventid,
         name: event.name,
         date: event.date,
         shortDescription: event.shortdescription,
@@ -117,7 +118,6 @@ function formatSearchEvent(event){
         city: event.city,
         speakers: event.speakers,
         tags: event.tags,
-        eventId: event.eventid,
         organizationId: event.organizationId,
         countryId: event.countryId,
         cityId: event.cityId,
@@ -138,7 +138,7 @@ function formatSearchEvent(event){
 
 function formatSearchEvents(events){
     let newEvents = []
-    events.map(event => newEvents.push(event))
+    events.map(event => newEvents.push(formatSearchEvent(event)))
     return newEvents
 }
 

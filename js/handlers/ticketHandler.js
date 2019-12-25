@@ -69,7 +69,7 @@ async function reserveTickets({buyerId=-1, eventId=-1, ticketTypes=[]}){
 
     const ticketTypesForEvent = await ticketDb.getTicketTypes(ticketIds)
     if(!ticketTypes){return SYSTEM_ERROR }
-
+console.log(ticketTypesForEvent, ticketTypesToBuy)
     let ticketCheckResponse = await checkForAvailableTickets(ticketTypesForEvent, ticketTypesToBuy)
     
     if(ticketCheckResponse.success){
@@ -97,14 +97,14 @@ async function checkForAvailableTickets(ticketTypesForEvent, ticketTypesToBuy){
 
     let ticketsNotFound = []
     for(let j = 0; j < ticketTypesToBuy.length; j++){
-        let ticket = ticketTypesToBuy[j]
+        let ticketTypeToBuy = ticketTypesToBuy[j]
         for(let i = 0; i < ticketTypesForEvent.length; i++){
             let ticketType = ticketTypesForEvent[i]
-            if(ticket.ticketTypeId === ticketType.id){
+            if(ticketTypeToBuy.id === ticketType.id){
                 let ticketsLeft = ticketType.amount - (ticketType.reserved+ticketType.sold)
-                if(ticketsLeft <= 0 || ticketsLeft < ticket.amount){
+                if(ticketsLeft <= 0 || ticketsLeft < ticketTypeToBuy.amount){
                     ticketsNotFound.push({
-                        ticketTypeId: ticket.ticketTypeId,
+                        ticketTypeId: ticketTypeToBuy.ticketTypeId,
                         message: (ticketsLeft <= 10 ? `There are only ${ticketsLeft} `:`There are fewer than ${ticket.amount} `) + `tickets left of type: ${ticketType.name}.\n` 
                     })
                 }

@@ -69,18 +69,19 @@ console.log('her')
 
     const ticketValues = []
     event.tickets.forEach(ticket => {
-      ticketValues.push(ticket.price, ticket.name, ticket.amount)
+      ticketValues.push(ticket.price, ticket.name, ticket.amount, ticket.ownerInfo)
     })
-    let ticketQuery = `insert into ${DB_CONSTANTS.TICKETS_TYPE_DB} (price, name, amount, eventid) values`
+    let ticketQuery = `insert into ${DB_CONSTANTS.TICKETS_TYPE_DB} (price, name, amount, eventid, ownerinfo) values`
     let counter = 1;
     for (let j = 0; j < event.tickets.length; j++) {
-      ticketQuery += ` ($${counter}, $${counter + 1}, $${counter + 2}, ${eventR.id})`
+      ticketQuery += ` ($${counter}, $${counter + 1}, $${counter + 2}, ${eventR.id}, $${counter + 3})`
       if (j < event.tickets.length - 1) {
         ticketQuery += ","
       }
-      counter += 3
+      counter += 4
     }
     ticketQuery += ' RETURNING *'
+    console.log(ticketQuery)
 
     await client.query(ticketQuery, ticketValues)
 
@@ -171,7 +172,7 @@ console.log(theSpeakers)
       await client.query(tagsConnectQuery)
     }
 
-    let insertSearchQuery = `insert into ${DB_CONSTANTS.SEARCHEVENTS_DB} (eventid, name, organizationid, countryid, cityid,
+    let insertSearchQuery = `insert into ${DB_CONSTANTS.SEARCH_EVENTS_DB} (eventid, name, organizationid, countryid, cityid,
       startdate, enddate, minprice, maxprice, tagsids, speakersids, cecredits, categoryid, description, organization, country, city, speakers, tags, image, shortdescription) 
       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14, $15, $16, $17, $18, $19, $20, $21) returning *`
     let minPrice = Infinity
@@ -477,6 +478,7 @@ async function getInsertValuesDb() {
 
     const speakers = await client.query(`select * from ${DB_CONSTANTS.SPEAKERS_DB}`)
     result.data.speakers = speakers.rows
+
 
     await client.query('COMMIT')
     result.success = true

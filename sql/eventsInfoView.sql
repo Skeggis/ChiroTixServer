@@ -3,7 +3,7 @@ CREATE OR replace view eventsinfo AS
     events.name AS eventname,
     events.startdate AS startdate,
     events.enddate AS enddate,
-    events.ownerinfo AS ownerinfo,
+    -- events.ownerinfo AS ownerinfo,
     events.longdescription as longdescription,
     events.image as image,
     events.latitude as latitude,
@@ -16,7 +16,8 @@ CREATE OR replace view eventsinfo AS
 
     tickets.id AS tickettypeid,
     tickets.price AS ticketprice,
-    tickets.name AS ticketname
+    tickets.name AS ticketname,
+    tickets.ownerinfo AS ownerinfo
 
 FROM events
     INNER JOIN tickets ON tickets.eventid=events.id

@@ -8,7 +8,6 @@ const {
   notFoundHandler
 } = require('./js/helpers.js')
 
-const cors = require('cors')
 
 const eventRouter = require('./js/routers/eventRouter')
 const tagsRouter = require('./js/routers/tagsRouter')

@@ -148,27 +148,35 @@ async function reserveTickets(eventId, buyerId, ticketTypes){
     try {
         await client.query('BEGIN')
 
+        let ownerInfos = []
         for(let j = 0; j < ticketTypes.length; j++){ 
             let ticketType = ticketTypes[j]
             let q = `update ${DB_CONSTANTS.TICKETS_TYPE_DB} set reserved = reserved + ${ticketType.amount} where id=${ticketType.id}`
             await client.query(q) 
+            ownerInfos.push(ticketType.ownerInfo)
         }
         let query = `Select * from ${DB_CONSTANTS.EVENTS_DB} where id=${eventId}`
         const eventInfo = await client.query(query)
 
         const eventTicketsTable = eventInfo.rows[0].ticketstablename
-        message.ownerInfo = eventInfo.rows[0].ownerinfo
+        message.ownerInfos = ownerInfos
 
-        let multipleInsertQuery = `insert into ${eventTicketsTable} (eventid, tickettypeid, buyerid, price, name) values`
+        const ticketValues = []
+        let multipleInsertQuery = `insert into ${eventTicketsTable} (eventid, tickettypeid, buyerid, price, name, ownerinfo) values`
+        let counter = 1
         for(let j = 0; j < ticketTypes.length; j++){
             let ticketType = ticketTypes[j] 
             for(let i = 0; i < ticketType.amount; i++){
-                multipleInsertQuery += ` (${eventId}, ${ticketType.id}, '${buyerId}', ${ticketType.price}, '${ticketType.name}')`
+                console.log('ticket', ticketType.ownerInfo)
+                multipleInsertQuery += ` (${eventId}, ${ticketType.id}, '${buyerId}', ${ticketType.price}, '${ticketType.name}', $${counter})`
                 if(j < ticketTypes.length-1 || i < ticketType.amount-1){multipleInsertQuery += ","}
                 else {multipleInsertQuery += " returning *;"}
+                ticketValues.push(JSON.stringify(ticketType.ownerInfo))
+                counter += 1
             }
         }
-        let result = await client.query(multipleInsertQuery) 
+        let result = await client.query(multipleInsertQuery, ticketValues) 
+        console.log('owner',result.rows[0].ownerinfo)
         message.reservedTickets = await formatter.formatTickets(result.rows)
         await client.query('COMMIT')
         message.success = true
