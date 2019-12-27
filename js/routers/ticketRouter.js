@@ -44,11 +44,14 @@ async function reserveTickets(req, res){
         eventId,
         ticketTypes
     }
-    
+    console.log('her')
     var response = await ticketHandler.reserveTickets(data)
+    console.log(response)
     if(!response.success){return res.json(BAD_REQUEST("System error.") )}
     let io = req.app.get('io')
-    let timer = await calculateTime(response.ownerInfo, response.reservedTickets.length)
+    console.log('asdfasdf')
+    console.log(response.ownerInfos)
+    let timer = await calculateTime(response.ownerInfos, response.reservedTickets.length)
     io.sockets.connected[socketId].timer = timer
     let now = new Date()
     let releaseDate = new Date(now.getTime()+(timer))
@@ -58,11 +61,17 @@ async function reserveTickets(req, res){
     res.json(response)
 }
 
-async function calculateTime(ownerInfo, ticketsAmount){
+async function calculateTime(ownerInfos, ticketsAmount){
     let ONE_MINUTE = 60000
     let time = ONE_MINUTE*7 //7 minutes for billingInfo
-    time += (ownerInfo.length)*ONE_MINUTE*ticketsAmount //One minute for each input
+    console.log('asdf')
+    ownerInfos.forEach(info => {
+        console.log('info', info)
+        time += info.length*ONE_MINUTE 
+    })
+    //time += (ownerInfo.length)*ONE_MINUTE*ticketsAmount //One minute for each input
     time += ONE_MINUTE*10 //Ten minutes for the payment step
+    console.log(time)
     return time
 }
 
@@ -94,7 +103,10 @@ async function buyTickets(req, res){
             eventId = false,
             tickets = false,
             buyerInfo = false,
-            cardInformation = false
+            cardInformation = false,
+            insurance = false,
+            insurancePrice = 0,
+            ticketTypes = false
         }
     } = req
 
@@ -106,8 +118,13 @@ async function buyTickets(req, res){
         buyerId,
         eventId,
         tickets,
-        buyerInfo
+        buyerInfo,
+        insurance,
+        insurancePrice,
+        ticketTypes
     }
+
+    //Todo - send email
 
     var response = await ticketHandler.buyTickets(data)
 

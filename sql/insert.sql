@@ -6,10 +6,10 @@ insert into cities (name, countryid) values('Reykjavík', 1), ('Ekki til', 2), (
 
 insert into organizations (name) values ('ICPA'), ('ChiroPraktors');
 
-INSERT INTO events (name, startdate, enddate,longdescription, cityid, startsellingtime, finishsellingtime, ticketstablename, categoryid, organizationid, ownerinfo, cecredits) VALUES 
-('TEST1', '2019-12-18T15:13:26.439Z', '2019-12-18T15:13:26.439Z', 'Þetta er test', 1, '2019-12-18T15:13:26.439Z', '2019-12-18T15:13:26.439Z', 'ticketssold_1', 1, 2,array['{"label":"name", "type":"input", "required":true}', '{"label":"Massi", "type":"input", "required":true}']::jsonb[],3), 
- ('TEST2', '2019-12-2T15:13:26.439Z', '2019-12-2T15:13:26.439Z', 'Þetta er test', 2, '2019-12-18T15:13:26.439Z', '2019-12-18T15:13:26.439Z', 'tafla2', 3,1,array['{"label":"name", "type":"input", "required":true}', '{"label":"Massi", "type":"input", "required":true}']::jsonb[],3), 
- ('TEST2', '2019-12-2T15:13:26.439Z', '2019-12-2T15:13:26.439Z', 'Þetta er test', 1, '2019-12-18T15:13:26.439Z', '2019-12-18T15:13:26.439Z', 'tafla3', 3,1,array['{"label":"name", "type":"input", "required":true}', '{"label":"Massi", "type":"input", "required":true}']::jsonb[],3);
+INSERT INTO events (name, startdate, enddate,longdescription, cityid, startsellingtime, finishsellingtime, ticketstablename, categoryid, organizationid, cecredits) VALUES 
+('TEST1', '2019-12-18T15:13:26.439Z', '2019-12-18T15:13:26.439Z', 'Þetta er test', 1, '2019-12-18T15:13:26.439Z', '2019-12-18T15:13:26.439Z', 'ticketssold_1', 1, 2,3), 
+ ('TEST2', '2019-12-2T15:13:26.439Z', '2019-12-2T15:13:26.439Z', 'Þetta er test', 2, '2019-12-18T15:13:26.439Z', '2019-12-18T15:13:26.439Z', 'tafla2', 3,1,3), 
+ ('TEST2', '2019-12-2T15:13:26.439Z', '2019-12-2T15:13:26.439Z', 'Þetta er test', 1, '2019-12-18T15:13:26.439Z', '2019-12-18T15:13:26.439Z', 'tafla3', 3,1,3);
 
 drop table if EXISTS ticketssold_1;
 create table ticketssold_1(
@@ -36,7 +36,7 @@ insert into tags (name) values('Trigger Points'), ('Babies'), ('Hands on'), ('Þ
 
 insert into tagsconnect (eventid, tagid) values (1,1), (2,1), (1,3);
 
-insert into tickets (name, price, amount, eventid) values ('ChiroPractor', 333.333, 300, 1), ('Helper', 200.01, 100, 1), ('nobody', 1000.00, 100, 2), ('Basic', 99.99, 33, 3);
+insert into tickets (name, price, amount, eventid, ownerinfo) values ('ChiroPractor', 333.333, 300, 1, array['{"label":"name", "type":"input", "required":true}', '{"label":"Massi", "type":"input", "required":true}']::jsonb[]), ('Helper', 200.01, 100, 1, array['{"label":"name", "type":"input", "required":true}', '{"label":"Massi", "type":"input", "required":true}']::jsonb[]), ('nobody', 1000.00, 100, 2, array['{"label":"name", "type":"input", "required":true}', '{"label":"Massi", "type":"input", "required":true}']::jsonb[]), ('Basic', 99.99, 33, 3, array['{"label":"name", "type":"input", "required":true}', '{"label":"Massi", "type":"input", "required":true}']::jsonb[]);
 
 insert into organizations (name) values ('Best organization');
 

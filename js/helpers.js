@@ -43,6 +43,7 @@ const DB_CONSTANTS = {
   CITIES_DB,
   COUNTRIES_DB,
   EVENTS_INFO_VIEW,
+  ORDERS_DB,
   CHIRO_TIX_SETTINGS_DB
 } = process.env;
 

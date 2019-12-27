@@ -50,6 +50,7 @@ cities=[], categories=[], tags=[], speakers=[],  dates={},price={},CECredits={}}
     let result = await db.query(query)
     //TOdo: format
     let events = await formatter.formatSearchEvents(result.rows)
+    console.log(events)
     return events
 }
 
@@ -116,10 +117,11 @@ async function GetInitialSearchDb(){
         message.result.speakers = speakers.rows
 
         //Featured events
-        const featured = await client.query(`select * from ${DB_CONSTANTS.SEARCHEVENTS_DB} order by featurednr asc limit ${featuredLimit}`)
+        const featured = await client.query(`select * from ${DB_CONSTANTS.SEARCH_EVENTS_DB} order by featurednr asc limit ${featuredLimit}`)
        console.log(featured.rows)
-        message.result.featured = featured.rows
-
+        const t = formatter.formatSearchEvents(featured.rows)
+        message.result.featured = t
+        console.log('kommon',t)
         await client.query('COMMIT')
         message.success = true
     } catch (e){

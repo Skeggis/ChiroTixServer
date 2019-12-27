@@ -1,6 +1,10 @@
 const ticketDb = require('../database/ticketDb')
 const {SYSTEM_ERROR} = require('../Messages')
+const {
+    sendReceiptMail
+} = require('../handlers/emailHandler')
 const {createTicketsPDF} = require('../createPDFHTML/createPDF')
+
 
 
 async function getEventInfoWithTicketTypes(eventId){
@@ -70,7 +74,7 @@ async function reserveTickets({buyerId=-1, eventId=-1, ticketTypes=[]}){
 
     const ticketTypesForEvent = await ticketDb.getTicketTypes(ticketIds)
     if(!ticketTypes){return SYSTEM_ERROR }
-
+console.log(ticketTypesForEvent, ticketTypesToBuy)
     let ticketCheckResponse = await checkForAvailableTickets(ticketTypesForEvent, ticketTypesToBuy)
     
     if(ticketCheckResponse.success){
@@ -98,14 +102,14 @@ async function checkForAvailableTickets(ticketTypesForEvent, ticketTypesToBuy){
 
     let ticketsNotFound = []
     for(let j = 0; j < ticketTypesToBuy.length; j++){
-        let ticket = ticketTypesToBuy[j]
+        let ticketTypeToBuy = ticketTypesToBuy[j]
         for(let i = 0; i < ticketTypesForEvent.length; i++){
             let ticketType = ticketTypesForEvent[i]
-            if(ticket.ticketTypeId === ticketType.id){
+            if(ticketTypeToBuy.id === ticketType.id){
                 let ticketsLeft = ticketType.amount - (ticketType.reserved+ticketType.sold)
-                if(ticketsLeft <= 0 || ticketsLeft < ticket.amount){
+                if(ticketsLeft <= 0 || ticketsLeft < ticketTypeToBuy.amount){
                     ticketsNotFound.push({
-                        ticketTypeId: ticket.ticketTypeId,
+                        ticketTypeId: ticketTypeToBuy.ticketTypeId,
                         message: (ticketsLeft <= 10 ? `There are only ${ticketsLeft} `:`There are fewer than ${ticket.amount} `) + `tickets left of type: ${ticketType.name}.\n` 
                     })
                 }
@@ -133,15 +137,39 @@ async function checkForAvailableTickets(ticketTypesForEvent, ticketTypesToBuy){
  *                      SSN: String (?)
  *                  }    
  */
-async function buyTickets({eventId=-1, buyerId=-1, tickets=[], buyerInfo={}}){
+async function buyTickets({eventId=-1, buyerId=-1, tickets=[], buyerInfo={}, insurance=null, insurancePrice = 0, ticketTypes={}}){
     //Check if this buyer has reserved the tickets he is trying to buy.
+    console.log('Tickets:', tickets)
     let reservedTickets = await ticketDb.getAllReservedTicketsForBuyer(buyerId, eventId, tickets)
+console.log('reserved', reservedTickets)
+    if(!( await ticketsReservedMatchBuyerTickets(reservedTickets, tickets) )) {
+        console.log('HEEER')
+        return SYSTEM_ERROR
+    }
 
-    if(!( await ticketsReservedMatchBuyerTickets(reservedTickets, tickets) )) {return SYSTEM_ERROR}
+    let receipt = {
+        cardNumber: '7721',
+        expiryDate: '03/22',
+        amount: 200,
+        name: 'Róbert Ingi Huldarsson',
+        address: 'Álfaberg 24',
+        place: '221, Hafnarfjörður',
+        country: 'Iceland',
+        lines: ticketTypes
+    } //Get from Borgun/Paypal. TODO: Paypal/Borgun
 
-    let receipt = {} //Get from Borgun/Paypal. TODO: Paypal/Borgun
+    const buyingTicketsResponse = await ticketDb.buyTickets(eventId, buyerId, tickets, buyerInfo, receipt, insurance, insurancePrice)
+    console.log('TEST',buyingTicketsResponse)
 
-    const buyingTicketsResponse = await ticketDb.buyTickets(eventId, buyerId, tickets, buyerInfo, receipt)
+    //todo: send email:
+    const orderId = buyingTicketsResponse.orderDetails.orderId
+    console.log(orderId)
+    await sendReceiptMail(
+        `http://localhost:3000/orders/${orderId}`, 
+        'noreply@chirotix.com', 
+        buyingTicketsResponse.orderDetails.buyerInfo.email, 
+        'ChiroTix order')
+
     return buyingTicketsResponse
 }
 
