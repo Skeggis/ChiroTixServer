@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<link rel="stylesheet" type="text/css" href="ticketTemplate.css">
+{{#tickets}}
+<html lang="en" style="height:100%;margin:0">
+
+<body>
+    <div class="ticket purple">
+        <div class="aboveTicketDiv">
+            <h4 class="orderNr">OrderNr: #{{../orderNr}}</h4>
+            <div class="logoDiv">
+                <h2 class="logo">LOGO</h2>
+            </div>
+        </div>
+
+
+        <div class='ticketDiv'>
+            <div class="headerDiv">
+                <div class="titleDiv">
+                    <h1 class="eventName">{{../name}}</h1>
+                    <h4 class="ceCredits themeColor skinny">CE credits: {{../CECredits}}</h4>
+                </div>
+                <div class="organizationDiv">
+                    <h2 class="organization skinny themeColor">{{../organization}}</h2>
+                </div>
+            </div>
+
+            <div class="informationGrid">
+                <div class="informationDiv">
+                    <h3 class="informationTitle themeColor skinny">Location:</h3>
+                    <h4 class="informationSub">{{../city}}, {{../country}}</h4>
+                    <h4 class="informationSubSub skinny">{{../streetName}}</h4>
+                </div>
+
+
+                <div class="informationDiv">
+                    <h3 class="informationTitle themeColor skinny">Attendee:</h3>
+                    <h4 class="informationSub">{{this.ownerInfo.0.value}}</h4>
+                    <h4 class="informationSubSub skinny">{{this.ownerInfo.1.value}}</h4>
+                </div>
+                <div></div>
+                <div class="informationDiv">
+                    <h3 class="informationTitle themeColor skinny">Dates:</h3>
+                    <h4 class="informationSub">{{../dates}}</h4>
+                    {{#../schedule}}
+                    <h4 class="informationSubSub skinny">{{this}}</br></h4>
+                    {{/../schedule}}
+
+                </div>
+
+                <div class="informationDiv">
+                    <h3 class="informationTitle themeColor skinny">Ticket type:</h3>
+                    <h4 class="informationSub">{{this.name}}</h4>
+                    <h4 class="informationSubSub skinny">{{this.price}}</h4>
+                </div>
+
+                <div></div>
+            </div>
+
+            {{!-- <h2>{{ticket.id}}</h2> --}}
+
+
+        </div>
+        <div class="line"></div>
+
+        <div class="termsDiv">
+            <h1 class="termsTitle themeColor skinny">{{termsTitle}}</h1>
+            <p class="termsText">{{termsText}}</p>
+        </div>
+    </div>
+
+
+
+</body>
+
+</html>
+
+    {{/tickets}}
