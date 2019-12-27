@@ -127,6 +127,10 @@ async function buyTickets(req, res){
     //Todo - send email
 
     var response = await ticketHandler.buyTickets(data)
+
+    // if(response.success){
+
+    // }
     res.json(response)
 }
 
@@ -191,10 +195,29 @@ async function releaseTickets(req,res){
 //     res.json(response)
 // }
 
+async function testPDF(req, res){
+    const {
+        data = false
+    } = req.body
 
+    
+    if(!data){return res.send('FOOOOKKKK')}
+    let resp = await ticketHandler.sendReceiptEmailWithPDF(data)
+    res.type('application/pdf');
+    res.send(resp.buffer);
+}
+
+async function test(req,res){
+    console.log("TESTRECEIVED")
+    res.send({success:true})
+}
+
+
+router.get('/test', catchErrors(test))
 router.get('/tickets/info/:eventId', catchErrors(eventInfo))
 router.post('/tickets/reserveTickets', catchErrors(reserveTickets))
 router.post('/tickets/buyTickets', catchErrors(buyTickets))
 router.post('/tickets/releaseTickets', catchErrors(releaseTickets))
+router.post('/testPDF', catchErrors(testPDF))
 // router.post('/releaseAllTickets', catchErrors(releaseAllTickets))
 module.exports = router

@@ -22,7 +22,7 @@ function errorHandler(err, req, res, next) {
     return res.status(400).json({ error: 'Invalid json' });
   }
 
-  return res.status(500).json({ error: 'Internal server error' });
+  return res.status(500).json({ success:false,error: 'Internal server error' });
 }
 
 function isValidDate(d){
@@ -43,7 +43,8 @@ const DB_CONSTANTS = {
   CITIES_DB,
   COUNTRIES_DB,
   EVENTS_INFO_VIEW,
-  ORDERS_DB
+  ORDERS_DB,
+  CHIRO_TIX_SETTINGS_DB
 } = process.env;
 
 

@@ -1,0 +1,122 @@
+@page {
+    size: 1200px 1900px;
+    margin: 0;
+    padding: 0;
+    display: block;
+} 
+
+html, body{
+    margin: 0;
+    padding: 0;
+    /* display: block; */
+}
+
+.ticket{
+    height: 1900px;
+}
+
+.themeColor{
+    color: #173753;
+}
+
+.blue{background-color: blue;}
+.yellow{background-color: yellow;}
+.purple{background-color: purple;}
+.green{background-color: green;}
+
+.skinny{
+    font-weight: 100;
+}
+
+.aboveTicketDiv{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    height: 40px;
+    margin: 10px 25px 10px 25px;
+    justify-content: space-between;
+    margin-top: 0;
+}
+
+.orderNr{
+    font-size: 19px;
+}
+
+.ticketDiv {
+    border-style: solid;
+    border-width: 1px;
+    border-color: #555555;
+    padding: 25px 25px 25px 25px;
+    margin: 0 25px 0 25px;
+}
+
+.headerDiv{
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    margin-bottom: 75px;
+}
+
+.eventName{
+    margin: 0;
+}
+
+.ceCredits{ margin-top: 10px; }
+
+.organization{
+    margin: 0;
+}
+
+.informationGrid{
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-gap: 50px 0;
+}
+
+.informationDiv{
+    display: flex;
+    flex-direction: column;
+}
+
+.informationTitle{
+    font-size: 30px;
+    padding: 0;
+    margin: 0;
+    margin-bottom: 10px;
+}
+
+.informationSub{
+    margin: 0 0 7px 15px;
+    padding: 0;
+    font-weight: bold;
+    font-size: 17px;
+}
+
+.informationSubSub{
+    margin: 0 0 0 20px;
+    padding: 0;
+    font-size: 15px;
+}
+
+.line {
+    margin: 50px 0;
+    height: 1px;
+    background:
+        repeating-linear-gradient(to right, black 3px, black 3px, transparent 15px, transparent 15px)
+}
+
+
+.termsDiv{
+    margin: 0 100px 0 100px;
+}
+
+.termsTitle{
+    margin-bottom: 45px;
+}
+
+.termsText{
+    margin-left: 10px;
+    line-height: 25px;
+}

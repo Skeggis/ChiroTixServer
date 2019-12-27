@@ -45,8 +45,9 @@ async function main() {
 
   await query(`DROP VIEW IF EXISTS ${DB_CONSTANTS.EVENTS_INFO_VIEW}`)
   // drop tables if exists
-  await query(`DROP TABLE IF EXISTS ${DB_CONSTANTS.SEARCH_EVENTS_DB}, ${DB_CONSTANTS.ORDERS_DB}, ${DB_CONSTANTS.SPEAKERS_CONNECT_DB}, ${DB_CONSTANTS.SPEAKERS_DB}, ${DB_CONSTANTS.TICKETS_TYPE_DB}, 
-  ${DB_CONSTANTS.EVENTS_DB},${DB_CONSTANTS.CITIES_DB}, ${DB_CONSTANTS.COUNTRIES_DB}, ${DB_CONSTANTS.TAGS_DB}, ${DB_CONSTANTS.TAGS_CONNECT_DB}, ${DB_CONSTANTS.ORGANIZATIONS_DB}, ${DB_CONSTANTS.CATEGORIES_DB}, ${DB_CONSTANTS.SPEAKERS_CONNECT_DB}`);
+
+  await query(`DROP TABLE IF EXISTS ${DB_CONSTANTS.CHIRO_TIX_SETTINGS_DB},${DB_CONSTANTS.ORDERS_DB}, ${DB_CONSTANTS.SEARCH_EVENTS_DB}, ${DB_CONSTANTS.SPEAKERS_CONNECT_DB}, ${DB_CONSTANTS.SPEAKERS_DB}, ${DB_CONSTANTS.TICKETS_TYPE_DB}, 
+  ${DB_CONSTANTS.EVENTS_DB},${DB_CONSTANTS.CITIES_DB}, ${DB_CONSTANTS.COUNTRIES_DB}, ${DB_CONSTANTS.TAGS_DB}, ${DB_CONSTANTS.TAGS_CONNECT_DB}, ${DB_CONSTANTS.ORGANIZATIONS_DB}, ${DB_CONSTANTS.CATEGORIES_DB}`);
   console.info('Tables deleted');
 
   // create tables from schemas
@@ -64,6 +65,7 @@ async function main() {
     const searchEvents = await readFileAsync('./sql/searchEvents.sql')
     const eventsInfoView = await readFileAsync('./sql/eventsInfoView.sql')
     const orders = await readFileAsync('./sql/orders.sql')
+    const chiroTixSettings = await readFileAsync('./sql/chiroTixSettings.sql')
     
 
 
@@ -80,7 +82,7 @@ async function main() {
     await query(searchEvents.toString('utf8'))
     await query(eventsInfoView.toString('utf8'))
     await query(orders.toString('utf8'))
-
+    await query(chiroTixSettings.toString('utf8'))
 
     await query(`CREATE INDEX textsearch_idx ON ${DB_CONSTANTS.SEARCH_EVENTS_DB} USING GIN (textsearchable_index_col);`)
 
