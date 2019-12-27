@@ -103,7 +103,10 @@ async function buyTickets(req, res){
             eventId = false,
             tickets = false,
             buyerInfo = false,
-            cardInformation = false
+            cardInformation = false,
+            insurance = false,
+            insurancePrice = 0,
+            ticketTypes = false
         }
     } = req
 
@@ -115,8 +118,13 @@ async function buyTickets(req, res){
         buyerId,
         eventId,
         tickets,
-        buyerInfo
+        buyerInfo,
+        insurance,
+        insurancePrice,
+        ticketTypes
     }
+
+    //Todo - send email
 
     var response = await ticketHandler.buyTickets(data)
     res.json(response)

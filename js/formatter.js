@@ -174,7 +174,34 @@ async function formatSpeakers(speakers){
     return newSpeakers
 }
 
+function formatOrderDetails(details){
+    return {
+        orderId: details.orderid,
+        eventId: details.eventid,
+        receipt: details.receipt,
+        tickets: details.tickets,
+        insurance: details.insurance,
+        insurancePrice: details.insuranceprice,
+        buyerInfo: details.buyerinfo,
+        buyerId: details.buyerid,
+        date: details.date
+    }
+}
 
-module.exports = {formatTicketType, formatTicketTypes, formatEvent, formatEvents, formatTicket, formatTickets,
-                    formatTag, formatTags, formatSpeaker, formatSpeakers, formatSearchEvent, formatSearchEvents,
-                    formatEventInfoView}
+
+module.exports = {
+    formatTicketType, 
+    formatTicketTypes, 
+    formatEvent, 
+    formatEvents, 
+    formatTicket, 
+    formatTickets,
+    formatTag, 
+    formatTags, 
+    formatSpeaker, 
+    formatSpeakers, 
+    formatSearchEvent, 
+    formatSearchEvents,
+    formatEventInfoView,
+    formatOrderDetails
+}

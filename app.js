@@ -13,6 +13,7 @@ const eventRouter = require('./js/routers/eventRouter')
 const tagsRouter = require('./js/routers/tagsRouter')
 const ticketRouter = require('./js/routers/ticketRouter')
 const searchRouter = require('./js/routers/searchRouter')
+const orderRouter = require('./js/routers/orderRouter')
 
 
 const app = express();
@@ -24,6 +25,7 @@ app.use(searchRouter)
 app.use(eventRouter)
 app.use(tagsRouter)
 app.use(ticketRouter)
+app.use(orderRouter)
 app.use(notFoundHandler)
 app.use(errorHandler)
 
