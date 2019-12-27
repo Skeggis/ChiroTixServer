@@ -81,7 +81,7 @@ async function formatEventInfoView(rows){
     for(let i = 0; i < rows.length; i++){
         ticketTypes.push({
             id: rows[i].tickettypeid,
-            price: rows[i].ticketprice,
+            price: parseFloat(rows[i].ticketprice).toFixed(2),
             name: rows[i].ticketname,
             amount: 0,
             ownerInfo: rows[i].ownerinfo

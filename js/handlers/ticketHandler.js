@@ -137,6 +137,32 @@ async function checkForAvailableTickets(ticketTypesForEvent, ticketTypesToBuy){
  *                      SSN: String (?)
  *                  }    
  */
+// {
+//     "name":"ChiroPraktik 101",
+//     "country":"Germany",
+//     "city":"Berlin",
+//     "streetName": "Agnes-Wabnitz-Straße 9, 10249",
+//     "dates": "Jan 3-5, 2020",
+//     "schedule": ["Fri:   10:00 AM - 6:30 PM",
+//         "Sat:  8:30   AM - 6:30 PM",
+//         "Sun: 8:00   AM - 1:00 PM"],
+//     "tickets":[{
+//         "name":"Chiropraktor",
+//         "price":333.33333,
+//         "id":"123",
+//         "ownerInfo":[{
+//             "label":"Attendee name",
+//             "value":"Þórður Ágústsson"
+//         },{
+//             "label":"School",
+//             "value":"Macquarie University"
+//         }]
+//     }],
+//     "CECredits":3,
+//     "organization":"ICPA",
+//     "termsTitle":"Tickets Terms",
+//     "orderId": "109238"
+// }
 async function buyTickets({eventId=-1, buyerId=-1, tickets=[], buyerInfo={}, insurance=null, insurancePrice = 0, ticketTypes={}}){
     //Check if this buyer has reserved the tickets he is trying to buy.
     console.log('Tickets:', tickets)
@@ -160,7 +186,11 @@ console.log('reserved', reservedTickets)
 
     const buyingTicketsResponse = await ticketDb.buyTickets(eventId, buyerId, tickets, buyerInfo, receipt, insurance, insurancePrice)
     console.log('TEST',buyingTicketsResponse)
-
+    
+    let createPDFResponse = await createTicketsPDF({eventInfo:buyingTicketsResponse.eventInfo, tickets:tickets})
+    console.log("RESPOMSEÞ", createPDFResponse)
+    let pdfBuffer;
+    if(createPDFResponse.success){ pdfBuffer = createPDFResponse.buffer }
     //todo: send email:
     const orderId = buyingTicketsResponse.orderDetails.orderId
     console.log(orderId)
@@ -168,7 +198,8 @@ console.log('reserved', reservedTickets)
         `http://localhost:3000/orders/${orderId}`, 
         'noreply@chirotix.com', 
         buyingTicketsResponse.orderDetails.buyerInfo.email, 
-        'ChiroTix order')
+        'ChiroTix order',
+        pdfBuffer)
 
     return buyingTicketsResponse
 }

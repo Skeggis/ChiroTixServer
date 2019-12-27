@@ -39,8 +39,12 @@ async function buyTickets(eventId, buyerId, tickets, buyerInfo, receipt, insuran
         await client.query('BEGIN')
 
         let query = `Select * from ${DB_CONSTANTS.EVENTS_DB} where id=${eventId}`
-        const eventInfo = await client.query(query)
-        const eventTicketsTable = eventInfo.rows[0].ticketstablename
+        const eventResponse = await client.query(query)
+        const eventTicketsTable = eventResponse.rows[0].ticketstablename
+
+        let eventInfoQuery = `Select * from ${DB_CONSTANTS.EVENTS_INFO_VIEW} where eventid=${eventId}`
+        let eventInfoResponse = await client.query(eventInfoQuery)
+        const {eventInfo} = await formatter.formatEventInfoView(eventInfoResponse.rows)
 
 
         //Insert into the orders table
@@ -90,13 +94,10 @@ async function buyTickets(eventId, buyerId, tickets, buyerInfo, receipt, insuran
         let result = await client.query(query)
         let boughtTickets = await formatter.formatTickets(result.rows)
 
-
-
-
-
         await client.query('COMMIT')
         message.boughtTickets = boughtTickets
         message.orderDetails = orderDetails
+        message.eventInfo = eventInfo
         message.success = true
     } catch (e) {
         await client.query('ROLLBACK')

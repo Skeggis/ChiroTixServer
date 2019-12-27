@@ -4,9 +4,9 @@
 <html lang="en" style="height:100%;margin:0">
 
 <body>
-    <div class="ticket purple">
+    <div class="ticket">
         <div class="aboveTicketDiv">
-            <h4 class="orderNr">OrderNr: #{{../orderNr}}</h4>
+            <h4 class="orderNr">OrderNr: #{{../eventInfo.orderNr}}</h4>
             <div class="logoDiv">
                 <h2 class="logo">LOGO</h2>
             </div>
@@ -16,19 +16,18 @@
         <div class='ticketDiv'>
             <div class="headerDiv">
                 <div class="titleDiv">
-                    <h1 class="eventName">{{../name}}</h1>
-                    <h4 class="ceCredits themeColor skinny">CE credits: {{../CECredits}}</h4>
+                    <h1 class="eventName">{{../eventInfo.name}}</h1>
                 </div>
                 <div class="organizationDiv">
-                    <h2 class="organization skinny themeColor">{{../organization}}</h2>
+                    <h2 class="organization skinny themeColor">{{../eventInfo.organization}}</h2>
                 </div>
             </div>
 
             <div class="informationGrid">
                 <div class="informationDiv">
                     <h3 class="informationTitle themeColor skinny">Location:</h3>
-                    <h4 class="informationSub">{{../city}}, {{../country}}</h4>
-                    <h4 class="informationSubSub skinny">{{../streetName}}</h4>
+                    <h4 class="informationSub">{{../eventInfo.city}}, {{../eventInfo.country}}</h4>
+                    <h4 class="informationSubSub skinny">{{../eventInfo.streetName}}</h4>
                 </div>
 
 
@@ -40,23 +39,21 @@
                 <div></div>
                 <div class="informationDiv">
                     <h3 class="informationTitle themeColor skinny">Dates:</h3>
-                    <h4 class="informationSub">{{../dates}}</h4>
-                    {{#../schedule}}
+                    <h4 class="informationSub">{{../eventInfo.dates}}</h4>
+                    {{#../eventInfo.schedule}}
                     <h4 class="informationSubSub skinny">{{this}}</br></h4>
-                    {{/../schedule}}
+                    {{/../eventInfo.schedule}}
 
                 </div>
 
                 <div class="informationDiv">
                     <h3 class="informationTitle themeColor skinny">Ticket type:</h3>
                     <h4 class="informationSub">{{this.name}}</h4>
-                    <h4 class="informationSubSub skinny">{{this.price}}</h4>
+                    <h4 class="informationSubSub skinny">{{this.price}} $</h4>
                 </div>
 
                 <div></div>
             </div>
-
-            {{!-- <h2>{{ticket.id}}</h2> --}}
 
 
         </div>
