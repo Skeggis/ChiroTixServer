@@ -1,5 +1,6 @@
 const ticketDb = require('../database/ticketDb')
 const {SYSTEM_ERROR} = require('../Messages')
+const {createTicketsPDF} = require('../createPDFHTML/createPDF')
 
 
 async function getEventInfoWithTicketTypes(eventId){
@@ -192,5 +193,16 @@ async function ticketsReservedMatchBuyerTickets(reservedTickets, tickets){
     return true
 }
 
+/**
+ * 
+ * @param {*} data 
+ */
+async function sendReceiptEmailWithPDF(data){
+    let receipt = await createTicketsPDF(data)
+    // let receipt = await createTicketsPDF(data.eventInfo, data.tickets)
+    //Send email with pdf (buffer is pdf iff success is true)
+    return receipt
+}
 
-module.exports = {reserveTickets, buyTickets, releaseTickets, releaseAllTicketsForBuyer, getEventInfoWithTicketTypes}
+
+module.exports = {reserveTickets, buyTickets, releaseTickets, releaseAllTicketsForBuyer, getEventInfoWithTicketTypes, sendReceiptEmailWithPDF}
