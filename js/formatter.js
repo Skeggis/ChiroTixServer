@@ -90,7 +90,9 @@ async function formatEventInfoView(rows){
         if(rows[i].ticketprice > maxPrice){maxPrice = rows[i].ticketprice}
     }
 
-    eventInfo.priceRange = `${parseFloat(lowPrice).toFixed(2)} - ${parseFloat(maxPrice).toFixed(2)} $`
+
+
+    eventInfo.priceRange = lowPrice === maxPrice ? `${parseFloat(lowPrice).toFixed(2)} $` : `${parseFloat(lowPrice).toFixed(2)} - ${parseFloat(maxPrice).toFixed(2)} $`
 
     return {eventInfo, ticketTypes}
 }
@@ -98,6 +100,10 @@ async function formatEventInfoView(rows){
 function getDateRange(startDate, endDate){
     let start = new Date(startDate)
     let end = new Date(endDate)
+
+    if(start.getDate() === end.getDate() && start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()){
+        return `${start.getDate()}.${start.getMonth()+1}.${start.getFullYear()%100}`
+    }
     return `${start.getDate()}.${start.getMonth()+1}.${start.getFullYear()%100} - ${end.getDate()}.${end.getMonth()+1}.${end.getFullYear()%100}`
 }
 
