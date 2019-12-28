@@ -37,6 +37,7 @@ async function insertEventDb(event) {
     startsellingtime: event.startSellingTime,
     finishsellingtime: event.finishSellingTime,
     cecredits: event.CECredits,
+    schedule: event.schedule
   }
   let organization = event.organization // [{name: String, id: Integer (if organization exists in db)}]
   let speakers = event.speakers //[{name:String, id: Integer (iff speaker exists in our db)}]
@@ -62,8 +63,8 @@ async function insertEventDb(event) {
 console.log('her')
 
     const eventQuery = `INSERT INTO ${DB_CONSTANTS.EVENTS_DB} (name, startdate, enddate, shortdescription, longdescription, image, cityid, longitude, latitude, categoryid,
-      startsellingtime, finishsellingtime, cecredits, organizationid)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8,$9, $10, $11, $12, $13, $14) RETURNING *`
+      startsellingtime, finishsellingtime, cecredits, schedule, organizationid)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8,$9, $10, $11, $12, $13, $14, $15) RETURNING *`
     const eventRes = await client.query(eventQuery, [...Object.values(myEvent), myOrganizationId])
     const eventR = await formatter.formatEvent(eventRes.rows[0])
 

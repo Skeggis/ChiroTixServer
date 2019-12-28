@@ -3,12 +3,12 @@ CREATE OR replace view eventsinfo AS
     events.name AS eventname,
     events.startdate AS startdate,
     events.enddate AS enddate,
-    -- events.ownerinfo AS ownerinfo,
     events.longdescription as longdescription,
     events.image as image,
     events.latitude as latitude,
     events.longitude as longitude,
     events.cecredits as cecredits,
+    events.schedule as schedule,
 
     organizations.name AS organization,
     countries.name AS country,
