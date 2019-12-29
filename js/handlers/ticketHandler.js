@@ -1,5 +1,6 @@
 const {HOST} = require('../helpers')
 const ticketDb = require('../database/ticketDb')
+const settingsDb = require('../database/settingsDb')
 const { SYSTEM_ERROR } = require('../Messages')
 const {
     sendReceiptMail
@@ -176,6 +177,15 @@ async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo 
 
     if (!reservedTickets) { return SYSTEM_ERROR }
     if (!(await ticketsReservedMatchBuyerTickets(reservedTickets, tickets))) { return { success: false, messages: [{ type: "error", message: "The tickets you are trying to buy and the tickets reserved for you don't match. Please try again." }] } }
+
+    let settings = await settingsDb.getSettings()
+    
+    if(!settings){return SYSTEM_ERROR}
+
+    for(let i = 0; i < tickets.length; i++){
+        tickets[i].termsTitle = settings.ticketsTermsTitle
+        tickets[i].termsText = settings.ticketsTermsText
+    }
 
     let receipt = {
         cardNumber: '7721',

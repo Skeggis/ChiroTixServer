@@ -10,5 +10,7 @@
      buyerinfo jsonb not null default '{}',
      ownerinfo jsonb default '{}',
      orderid TEXT,
+     termstitle varchar(255),
+     termstext text,
      DATE timestamptz NOT NULL DEFAULT current_timestamp
 );

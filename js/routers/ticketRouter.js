@@ -119,6 +119,10 @@ async function buyTickets(req, res){
     }
 
     var response = await ticketHandler.buyTickets(data)
+    if(response.success){ 
+        let io = req.app.get('io')
+        if(io.sockets.connected[socketId]) {clearTimeout(io.sockets.connected[socketId].timeOut)}
+    }
     res.json(response)
 }
 

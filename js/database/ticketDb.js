@@ -63,8 +63,8 @@ async function buyTickets(eventId, buyerId, tickets, buyerInfo, receipt, insuran
         for (let j = 0; j < tickets.length; j++) {
             let ticket = tickets[j]
             //Using ticket.id, not ticket.ticketTypeId, because it is referring to the id in the sold table
-            let q = `update ${eventTicketsTable} set (issold, ownerinfo, orderid) = ($1,$2, $3) where buyerid = '${buyerId}' and id = ${ticket.id} returning *`
-            const values = [true, JSON.stringify(ticket.ownerInfo), orderInsertResult.rows[0].orderid]
+            let q = `update ${eventTicketsTable} set (issold, ownerinfo, orderid, termsTitle, termsText) = ($1,$2,$3,$4,$5) where buyerid = '${buyerId}' and id = ${ticket.id} returning *`
+            const values = [true, JSON.stringify(ticket.ownerInfo), orderInsertResult.rows[0].orderid, ticket.termsTitle, ticket.termsText]
             let boughtResult = await client.query(q, values)
             boughtTickets.push(await formatter.formatTicket(boughtResult.rows[0]))
 
@@ -230,7 +230,7 @@ async function releaseAllTicketsForBuyer(buyerId, eventId) {
         const eventTicketsTable = eventInfo.rows[0].ticketstablename
 
         await client.query('BEGIN')
-        query = `delete from ${eventTicketsTable} where buyerId='${buyerId}' and issold=false`
+        query = `delete from ${eventTicketsTable} where buyerId='${buyerId}' and issold=false and isbuying=false`
         await client.query(query)
 
         //Update ticketTypes DB
@@ -272,7 +272,7 @@ async function releaseTickets(reservedTicketIds, ticketTypesAmount, eventId) {
 
         await client.query('BEGIN')
 
-        query = `delete from ${eventTicketsTable} where id=Any('{${reservedTicketIds.toString()}}') and issold=false`
+        query = `delete from ${eventTicketsTable} where id=Any('{${reservedTicketIds.toString()}}') and issold=false and isbuying = false`
         await client.query(query)
 
         let ticketTypesIds = Object.keys(ticketTypesAmount)

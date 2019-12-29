@@ -33,7 +33,9 @@ async function formatTicket(ticket){
         buyerId: ticket.buyerid,
         buyerInfo: ticket.buyerinfo,
         ownerInfo: ticket.ownerinfo,
-        date: ticket.date
+        date: ticket.date,
+        termsTitle: ticket.termstitle,
+        termsText: ticket.termstext
     }
 }
 
@@ -236,6 +238,31 @@ async function formatSchedule(schedule){
     return {dates, newSchedule}
   }
 
+  async function formatChiroTixSettings(settings){
+      return {
+          id: settings.id,
+          ticketsTermsTitle: settings.ticketstermstitle,
+          ticketsTermsText: settings.ticketstermstext
+      }
+  }
+
+  async function formatUser(user){
+      return {
+          key: user.key,
+          admin: user.admin,
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          password: user.password,
+          dateRegistered: user.dateregistered
+      }
+  }
+
+  async function formatUsers(users){
+      let formattedUsers = []
+      for(let i = 0; i < users.length; i++){ formattedUsers.push(await formatUser(users[i]))}
+      return formattedUsers
+  }
 module.exports = {
     formatTicketType, 
     formatTicketTypes, 
@@ -251,5 +278,8 @@ module.exports = {
     formatSearchEvents,
     formatEventInfoView,
     formatOrderDetails,
-    formatSchedule
+    formatSchedule,
+    formatChiroTixSettings,
+    formatUser,
+    formatUsers
 }
