@@ -5,6 +5,7 @@
      tickettypeid integer not null,
      price numeric(15,6) CHECK (price >= 0) NOT null,
      issold boolean not null default false,
+     isbuying boolean not null default false,
      buyerid text not null,
      buyerinfo jsonb not null default '{}',
      ownerinfo jsonb default '{}',

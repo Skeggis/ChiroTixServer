@@ -72,7 +72,7 @@ async function formatEventInfoView(rows){
         latitude: rows[0].latitude,
         longitude: rows[0].longitude,
         CECredits: rows[0].cecredits,
-        
+        ticketsTableName: rows[0].ticketstablename
     }
 
     let {dates, newSchedule} = await formatSchedule(rows[0].schedule)
@@ -204,6 +204,8 @@ async function formatSchedule(schedule){
     var months = ['Jan','Feb','March','April','May','June','July','Aug','Sept','Oct','Nov','Dec'];
     let newSchedule = []
     let dates = ""
+
+    if(!schedule || schedule.length === 0){return {dates, newSchedule}}
   
     let firstDate = new Date(schedule[0].date)
     if(schedule.length > 1){

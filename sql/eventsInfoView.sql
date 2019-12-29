@@ -9,6 +9,7 @@ CREATE OR replace view eventsinfo AS
     events.longitude as longitude,
     events.cecredits as cecredits,
     events.schedule as schedule,
+    events.ticketstablename as ticketstablename,
 
     organizations.name AS organization,
     countries.name AS country,

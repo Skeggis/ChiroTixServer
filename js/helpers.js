@@ -47,6 +47,8 @@ const DB_CONSTANTS = {
   CHIRO_TIX_SETTINGS_DB
 } = process.env;
 
+const HOST_URL = process.env.HOST_URL
+
 
 
 module.exports = {
@@ -54,5 +56,6 @@ module.exports = {
   notFoundHandler,
   errorHandler,
   isValidDate,
-  DB_CONSTANTS
+  DB_CONSTANTS,
+  HOST_URL
 }

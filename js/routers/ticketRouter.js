@@ -9,10 +9,11 @@ async function eventInfo(req, res){
     let eventId = req.params.eventId
     if(!eventId){return res.json(BAD_REQUEST("Invalid body request."))}
 
-    let buyerId = crypto.randomBytes(20).toString('hex')
     let responseData = await ticketHandler.getEventInfoWithTicketTypes(eventId)
     if(!responseData){return res.json(BAD_REQUEST('No event with this id'))}
-    responseData.buyerId = buyerId
+
+    responseData.success = true
+    responseData.buyerId = crypto.randomBytes(20).toString('hex')
     res.json(responseData)
 }
 
@@ -44,34 +45,28 @@ async function reserveTickets(req, res){
         eventId,
         ticketTypes
     }
-    console.log('her')
+
     var response = await ticketHandler.reserveTickets(data)
-    console.log(response)
-    if(!response.success){return res.json(BAD_REQUEST("System error.") )}
+    if(!response.success){return res.json(response)}
+
     let io = req.app.get('io')
-    console.log('asdfasdf')
-    console.log(response.ownerInfos)
     let timer = await calculateTime(response.ownerInfos, response.reservedTickets.length)
-    io.sockets.connected[socketId].timer = timer
     let now = new Date()
     let releaseDate = new Date(now.getTime()+(timer))
+
     io.sockets.connected[socketId].releaseTime = releaseDate
+    io.sockets.connected[socketId].timer = timer
     response.timer = timer
     response.releaseTime = releaseDate
+
     res.json(response)
 }
 
 async function calculateTime(ownerInfos, ticketsAmount){
     let ONE_MINUTE = 60000
     let time = ONE_MINUTE*7 //7 minutes for billingInfo
-    console.log('asdf')
-    ownerInfos.forEach(info => {
-        console.log('info', info)
-        time += info.length*ONE_MINUTE 
-    })
-    //time += (ownerInfo.length)*ONE_MINUTE*ticketsAmount //One minute for each input
+    ownerInfos.forEach(info => { time += info.length*ONE_MINUTE  })
     time += ONE_MINUTE*10 //Ten minutes for the payment step
-    console.log(time)
     return time
 }
 
@@ -110,7 +105,6 @@ async function buyTickets(req, res){
         }
     } = req
 
-    console.log("BUYIT:", req.body)
     if(!(buyerId && eventId && tickets && buyerInfo)){ return res.json(BAD_REQUEST("Invalid body request.")) }
     if( tickets.length === 0 ){ return res.json(BAD_REQUEST("Invalid amount of tickets. Zero tickets not allowed."))}
 
@@ -124,13 +118,7 @@ async function buyTickets(req, res){
         ticketTypes
     }
 
-    //Todo - send email
-
     var response = await ticketHandler.buyTickets(data)
-
-    // if(response.success){
-
-    // }
     res.json(response)
 }
 
@@ -151,11 +139,11 @@ async function releaseTickets(req,res){
         body: {
             buyerId = false,
             eventId = false,
-            tickets = false
+            tickets = false,
+            socketId = false
         }
     } = req
 
-    console.log("GETIT!", req.body)
     if(!(buyerId && eventId && tickets)){ return res.json(BAD_REQUEST("Invalid body request.")) }
     if( tickets.length === 0 ){ return res.json(BAD_REQUEST("Invalid amount of tickets. Zero tickets not allowed."))}
 
@@ -166,58 +154,15 @@ async function releaseTickets(req,res){
     }
 
     var response = await ticketHandler.releaseTickets(data)
+    if(response.success){
+        let io = req.app.get('io')
+        if(io.sockets.connected[socketId]) {clearTimeout(io.sockets.connected[socketId].timeOut)}
+    }
     res.json(response)
 }
 
-/**
- * 
- * @param {Object} req.body: {
- *                  eventId: Integer,
- *                  buyerId: String
- * }
- */
-// async function releaseAllTickets(req,res){
-//     const {
-//         body: {
-//             buyerId = false,
-//             eventId = false
-//         }
-//     } = req
-
-//     if(!(buyerId && eventId )){ return res.json(BAD_REQUEST("Invalid body request.")) }
-
-//     const data = {
-//         buyerId,
-//         eventId
-//     }
-
-//     var response = await ticketHandler.releaseAllTicketsForBuyer(data)
-//     res.json(response)
-// }
-
-async function testPDF(req, res){
-    const {
-        data = false
-    } = req.body
-
-    
-    if(!data){return res.send('FOOOOKKKK')}
-    let resp = await ticketHandler.sendReceiptEmailWithPDF(data)
-    res.type('application/pdf');
-    res.send(resp.buffer);
-}
-
-async function test(req,res){
-    console.log("TESTRECEIVED")
-    res.send({success:true})
-}
-
-
-router.get('/test', catchErrors(test))
 router.get('/tickets/info/:eventId', catchErrors(eventInfo))
 router.post('/tickets/reserveTickets', catchErrors(reserveTickets))
 router.post('/tickets/buyTickets', catchErrors(buyTickets))
 router.post('/tickets/releaseTickets', catchErrors(releaseTickets))
-router.post('/testPDF', catchErrors(testPDF))
-// router.post('/releaseAllTickets', catchErrors(releaseAllTickets))
 module.exports = router
