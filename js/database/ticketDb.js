@@ -80,12 +80,23 @@ async function buyTickets(eventId, buyerId, tickets, buyerInfo, receipt, insuran
             await client.query(q)
         }
 
+        //Get the bought tickets, returning from the update above was not working, unfortunately. Perhaps because its inside BEGIN/COMMIT?. 
+        let boughtTicketIds = []
+        for (let j = 0; j < tickets.length; j++) { boughtTicketIds.push(tickets[j].id) }
+        query = `Select * from ${eventTicketsTable} where id = Any('{${boughtTicketIds.toString()}}')`
+        let result = await client.query(query)
+        let boughtTickets = await formatter.formatTickets(result.rows)
+
+        const chiroInfoResult = await client.query(`select receiptinfo from ${DB_CONSTANTS.CHIRO_TIX_SETTINGS_DB}`)
+        const chiroInfo = chiroInfoResult.rows[0].receiptinfo
+
         await client.query('COMMIT')
 
         message.boughtTickets = boughtTickets
         message.orderDetails = orderDetails
         message.eventInfo = eventInfo
         message.success = true
+        message.chiroInfo = chiroInfo
     } catch (e) {
         await client.query('ROLLBACK')
         console.log("BuyTickets error: ", e)

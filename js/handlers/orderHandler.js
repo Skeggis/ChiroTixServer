@@ -5,18 +5,19 @@ const {
 const formatter = require('../formatter')
 
 async function getOrder(orderId){
-  const check = await getOrderDb(orderId)
-  console.log('her',check.rows)
-  if(check.rows.length === 0){
-    return {
-      result: false,
-      message: 'No order with that id'
-    }
-  } //toto - if rows.length > 1 -> call Þórður with prerecorded message
+  const result = await getOrderDb(orderId)
 
-  return {
-    success: true,
-    orderDetails: formatter.formatOrderDetails(check.rows[0])
+  if(result.success){
+    return {
+      success: result.success,
+      chiroInfo: result.chiroInfo,
+      orderDetails: formatter.formatOrderDetails(result.order)
+    }
+  } else {
+    return {
+      success: false,
+      message: result.message
+    }
   }
 
 }
