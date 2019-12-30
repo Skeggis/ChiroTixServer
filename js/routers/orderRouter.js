@@ -11,11 +11,9 @@ async function getOrderRoute(req,res){
   const result = await getOrder(orderId)
   console.log(result)
 
-  if(result.success){
     return res.status(200).json(result)
-  }
+  
 
-  return res.status(400).json(result.message)
 }
 
 router.get('/orders/:orderId', catchErrors(getOrderRoute))

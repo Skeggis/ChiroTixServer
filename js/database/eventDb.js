@@ -50,13 +50,25 @@ async function insertEventDb(event) {
     let myOrganizationId
     let myOrganization
     if(organization.id){
+      //Caution: user can insert a name that is a number i.e. potentially a id does not exist. Then we insert a new organization with the id as a name
       myOrganizationId = organization.id
       myOrganization = await client.query(`select * from ${ORGANIZATIONS_DB} where id = $1`, [organization.id])
+      if(myOrganization.rows.length === 0){
+        myOrganization = await client.query(`insert into ${DB_CONSTANTS.ORGANIZATIONS_DB} (name) values ($1) returning *`, [myOrganizationId])
+      }
       myOrganization = myOrganization.rows[0]
     } else {
-      myOrganization = await client.query(`insert into ${DB_CONSTANTS.ORGANIZATIONS_DB} (name) values ($1) returning *`, [organization.name])
-      myOrganizationId = myOrganization.rows[0].id
-      myOrganization = myOrganization.rows[0]
+      //We need to check if the name already exists in the db
+      const check = await client.query(`select * from ${DB_CONSTANTS.ORGANIZATIONS_DB} where name = $1`, [organization.name])
+      if(check.rows.length > 0){
+        myOrganization = check.rows[0]
+        myOrganizationId = check.rows[0].id
+      } else {
+        myOrganization = await client.query(`insert into ${DB_CONSTANTS.ORGANIZATIONS_DB} (name) values ($1) returning *`, [organization.name])
+        myOrganizationId = myOrganization.rows[0].id
+        myOrganization = myOrganization.rows[0]
+
+      }
     }
 
   
@@ -109,10 +121,9 @@ console.log('her')
         }
       else {
         const check = await client.query(`select * from ${DB_CONSTANTS.SPEAKERS_DB} where name = $1`, [speaker.name])
+        //if speaker already exist just juse that speaker
         if (check.rowCount > 0) {
-          speakerErrors.push({
-            message: 'A speaker with this name already exists'
-          })
+          oldSpeakers.push({name: check.rows[0].name, id: check.rows[0].id})
         } else {
           newSpeakers.push(speaker)
           if (newSpeakers.length != 1) { insertNewSpeakersQuery += "," }
