@@ -16,7 +16,7 @@ const compile = async function (template, data){
 /**
  * 
  * @param {*} data : {
- *            orderId: Integer,
+ *            orderNr: Integer,
  *            name: String, (Event name),
  *            CECredits: Integer,
  *            organization: String,

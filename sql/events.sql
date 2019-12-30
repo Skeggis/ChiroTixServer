@@ -1,6 +1,7 @@
 create table events (
   id SERIAL PRIMARY KEY,
   name VARCHAR(255),
+  schedule jsonb[],
   startdate TIMESTAMPTZ,
   enddate TIMESTAMPTZ,
   shortdescription TEXT,

@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const passport = require('passport');
 var cors = require('cors')
 
 const {connectSocket} = require('./js/socket')
@@ -14,6 +15,7 @@ const tagsRouter = require('./js/routers/tagsRouter')
 const ticketRouter = require('./js/routers/ticketRouter')
 const searchRouter = require('./js/routers/searchRouter')
 const orderRouter = require('./js/routers/orderRouter')
+const loginRouter = require('./js/routers/loginRouter')
 
 
 const app = express();
@@ -21,11 +23,15 @@ app.use(cors({origin: '*'})) //Set options to only allow our frontend
 
 
 app.use(express.json());
+require('./js/passport')(passport);
+app.use(passport.initialize());
+
 app.use(searchRouter)
 app.use(eventRouter)
 app.use(tagsRouter)
 app.use(ticketRouter)
 app.use(orderRouter)
+app.use(loginRouter)
 app.use(notFoundHandler)
 app.use(errorHandler)
 

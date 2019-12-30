@@ -1,7 +1,7 @@
 async function formatTicketType(ticket){
     return {
         id: ticket.id,
-        price: ticket.price,
+        price: parseFloat(ticket.price).toFixed(2),
         name: ticket.name,
         amount: ticket.amount,
         sold: ticket.sold,
@@ -29,11 +29,13 @@ async function formatTicket(ticket){
         name: ticket.name,
         ticketTypeId: ticket.tickettypeid,
         receipt: ticket.receipt,
-        price: ticket.price,
+        price: parseFloat(ticket.price).toFixed(2),
         buyerId: ticket.buyerid,
         buyerInfo: ticket.buyerinfo,
         ownerInfo: ticket.ownerinfo,
-        date: ticket.date
+        date: ticket.date,
+        termsTitle: ticket.termstitle,
+        termsText: ticket.termstext
     }
 }
 
@@ -72,8 +74,12 @@ async function formatEventInfoView(rows){
         latitude: rows[0].latitude,
         longitude: rows[0].longitude,
         CECredits: rows[0].cecredits,
-        //ownerInfo: rows[0].ownerinfo
+        ticketsTableName: rows[0].ticketstablename
     }
+
+    let {dates, newSchedule} = await formatSchedule(rows[0].schedule)
+    eventInfo.schedule = newSchedule
+    eventInfo.dates = dates
 
     let ticketTypes = []
     let lowPrice = Infinity
@@ -81,7 +87,7 @@ async function formatEventInfoView(rows){
     for(let i = 0; i < rows.length; i++){
         ticketTypes.push({
             id: rows[i].tickettypeid,
-            price: rows[i].ticketprice,
+            price: parseFloat(rows[i].ticketprice).toFixed(2),
             name: rows[i].ticketname,
             amount: 0,
             ownerInfo: rows[i].ownerinfo
@@ -123,8 +129,8 @@ function formatSearchEvent(event){
         cityId: event.cityId,
         startDate: event.startdate,
         endDate: event.endDate,
-        minPrice: event.minprice,
-        maxPrice: event.maxprice,
+        minPrice: parseFloat(event.minprice).toFixed(2),
+        maxPrice: parseFloat(event.maxprice).toFixed(2),
         tagsIds: event.tagsids,
         speakerIds: event.speakerids,
         CECredits: event.cecredits,
@@ -181,14 +187,82 @@ function formatOrderDetails(details){
         receipt: details.receipt,
         tickets: details.tickets,
         insurance: details.insurance,
-        insurancePrice: details.insuranceprice,
+        insurancePrice: parseFloat(details.insuranceprice).toFixed(2),
         buyerInfo: details.buyerinfo,
         buyerId: details.buyerid,
         date: details.date
     }
 }
 
+/**
+ * @param {array} schedule: [{
+ *          date: 'YYYY-MM-DD',
+ *          startTime: 'YYYY-MM-DDTHH:MM:SS.000Z',
+ *          endTime: 'YYYY-MM-DDTHH:MM:SS.000Z'
+ * }]
+ */
+async function formatSchedule(schedule){
+    var days = ['Sun','Mon','Tue','Wed','Thur','Fri','Sat'];
+    var months = ['Jan','Feb','March','April','May','June','July','Aug','Sept','Oct','Nov','Dec'];
+    let newSchedule = []
+    let dates = ""
 
+    if(!schedule || schedule.length === 0){return {dates, newSchedule}}
+  
+    let firstDate = new Date(schedule[0].date)
+    if(schedule.length > 1){
+      let lastDate = new Date(schedule[schedule.length-1].date)
+      if(firstDate.getFullYear() !== lastDate.getFullYear()){
+        if(firstDate.getMonth() !== lastDate.getMonth()){ 
+          dates = `${months[firstDate.getMonth()]} ${firstDate.getDate()}, ${firstDate.getFullYear()} - ${months[lastDate.getMonth()]} ${lastDate.getDate()}, ${lastDate.getFullYear()}`
+        } else { dates = `${months[firstDate.getMonth()]} ${firstDate.getDate()}, ${firstDate.getFullYear()} - ${lastDate.getDate()}, ${lastDate.getFullYear()}` }
+      } else {
+        if(firstDate.getMonth() !== lastDate.getMonth()){ 
+          dates = `${months[firstDate.getMonth()]} ${firstDate.getDate()} - ${months[lastDate.getMonth()]} ${lastDate.getDate()}, ${firstDate.getFullYear()}`
+        } else { dates = `${months[firstDate.getMonth()]} ${firstDate.getDate()} - ${lastDate.getDate()}, ${firstDate.getFullYear()}` }
+      }
+    } else { 
+      dates = `${months[firstDate.getMonth()]} ${firstDate.getDate()}, ${firstDate.getDate()}`
+    }
+  
+    for(let i = 0; i < schedule.length; i++){
+      let day = new Date(schedule[i].date)
+      day = days[day.getDay()]
+      let startTime = new Date(schedule[i].startTime)
+      let endTime = new Date(schedule[i].endTime)
+      startTime = startTime.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
+      endTime = endTime.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
+      newSchedule.push(`${day} ${startTime} - ${endTime}`)
+    }
+  
+    return {dates, newSchedule}
+  }
+
+  async function formatChiroTixSettings(settings){
+      return {
+          id: settings.id,
+          ticketsTermsTitle: settings.ticketstermstitle,
+          ticketsTermsText: settings.ticketstermstext
+      }
+  }
+
+  async function formatUser(user){
+      return {
+          key: user.key,
+          admin: user.admin,
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          password: user.password,
+          dateRegistered: user.dateregistered
+      }
+  }
+
+  async function formatUsers(users){
+      let formattedUsers = []
+      for(let i = 0; i < users.length; i++){ formattedUsers.push(await formatUser(users[i]))}
+      return formattedUsers
+  }
 module.exports = {
     formatTicketType, 
     formatTicketTypes, 
@@ -203,5 +277,9 @@ module.exports = {
     formatSearchEvent, 
     formatSearchEvents,
     formatEventInfoView,
-    formatOrderDetails
+    formatOrderDetails,
+    formatSchedule,
+    formatChiroTixSettings,
+    formatUser,
+    formatUsers
 }

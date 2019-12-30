@@ -15,7 +15,22 @@ const { query } = require('./db');
 const connectionString = process.env.DATABASE_URL;
 const readFileAsync = util.promisify(fs.readFile);
 
-
+const {
+  TAGS_DB,
+  TAGS_CONNECT_DB,
+  EVENTS_DB,
+  SPEAKERS_DB,
+  SPEAKERS_CONNECT_DB,
+  ORGANIZATIONS_DB,
+  CATEGORIES_DB,
+  SEARCH_EVENTS_DB,
+  CITIES_DB,
+  COUNTRIES_DB,
+  EVENTS_INFO_VIEW,
+  ORDERS_DB,
+  CHIRO_TIX_SETTINGS_DB,
+  USERS_DB
+} = DB_CONSTANTS
 
 /**
  * Run all the sql scripts.
@@ -27,11 +42,11 @@ async function main() {
     SELECT 1 
     FROM   pg_catalog.pg_class c
     JOIN   pg_catalog.pg_namespace n ON n.oid = c.relnamespace
-    WHERE c.relname = '${DB_CONSTANTS.EVENTS_DB}'  
+    WHERE c.relname = '${EVENTS_DB}'  
     );`)
     
   if (check.rows[0].exists) {
-    const res = await query(`SELECT * FROM ${DB_CONSTANTS.EVENTS_DB}`)
+    const res = await query(`SELECT * FROM ${EVENTS_DB}`)
     let tables
    for(i = 0; i< res.rows.length; i++){
      tables+=res.rows[i].ticketstablename
@@ -43,11 +58,11 @@ async function main() {
     await query(`DROP TABLE IF EXISTS ${tables}`)
   }
 
-  await query(`DROP VIEW IF EXISTS ${DB_CONSTANTS.EVENTS_INFO_VIEW}`)
+  await query(`DROP VIEW IF EXISTS ${EVENTS_INFO_VIEW}`)
   // drop tables if exists
 
-  await query(`DROP TABLE IF EXISTS ${DB_CONSTANTS.CHIRO_TIX_SETTINGS_DB},${DB_CONSTANTS.ORDERS_DB}, ${DB_CONSTANTS.SEARCH_EVENTS_DB}, ${DB_CONSTANTS.SPEAKERS_CONNECT_DB}, ${DB_CONSTANTS.SPEAKERS_DB}, ${DB_CONSTANTS.TICKETS_TYPE_DB}, 
-  ${DB_CONSTANTS.EVENTS_DB},${DB_CONSTANTS.CITIES_DB}, ${DB_CONSTANTS.COUNTRIES_DB}, ${DB_CONSTANTS.TAGS_DB}, ${DB_CONSTANTS.TAGS_CONNECT_DB}, ${DB_CONSTANTS.ORGANIZATIONS_DB}, ${DB_CONSTANTS.CATEGORIES_DB}`);
+  await query(`DROP TABLE IF EXISTS ${CHIRO_TIX_SETTINGS_DB},${ORDERS_DB}, ${SEARCH_EVENTS_DB}, ${SPEAKERS_CONNECT_DB}, ${SPEAKERS_DB}, ${TICKETS_TYPE_DB}, 
+  ${EVENTS_DB},${CITIES_DB}, ${COUNTRIES_DB}, ${TAGS_DB}, ${TAGS_CONNECT_DB}, ${ORGANIZATIONS_DB}, ${CATEGORIES_DB}`);
   console.info('Tables deleted');
 
   // create tables from schemas
@@ -66,6 +81,7 @@ async function main() {
     const eventsInfoView = await readFileAsync('./sql/eventsInfoView.sql')
     const orders = await readFileAsync('./sql/orders.sql')
     const chiroTixSettings = await readFileAsync('./sql/chiroTixSettings.sql')
+    const users = await readFileAsync('./sql/users.sql')
     
 
 
@@ -83,8 +99,9 @@ async function main() {
     await query(eventsInfoView.toString('utf8'))
     await query(orders.toString('utf8'))
     await query(chiroTixSettings.toString('utf8'))
+    await query(users.toString('utf-8'))
 
-    await query(`CREATE INDEX textsearch_idx ON ${DB_CONSTANTS.SEARCH_EVENTS_DB} USING GIN (textsearchable_index_col);`)
+    await query(`CREATE INDEX textsearch_idx ON ${SEARCH_EVENTS_DB} USING GIN (textsearchable_index_col);`)
 
 
     console.info('Tables created');
