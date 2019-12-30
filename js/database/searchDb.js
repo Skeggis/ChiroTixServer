@@ -104,7 +104,7 @@ async function GetInitialSearchDb(){
 
         //Get organizations (that are holding events?)
         const orgs = await client.query(`select orgs.id, orgs.name from ${DB_CONSTANTS.ORGANIZATIONS_DB}
-            as orgs INNER JOIN ${DB_CONSTANTS.EVENTS_DB} as events on events.organizationid = orgs.id`)
+            as orgs INNER JOIN ${DB_CONSTANTS.EVENTS_DB} as events on events.organizationid = orgs.id GROUP BY orgs.id`)
         message.result.organizations = orgs.rows
 
         //Get tags (that is connected to a event (a event that has not finished?)?)

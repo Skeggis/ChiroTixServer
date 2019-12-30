@@ -8,7 +8,7 @@ require('dotenv').config();
 
 const fs = require('fs');
 const util = require('util');
-const {DB_CONSTANTS} = require('../helpers')
+const { DB_CONSTANTS } = require('../helpers')
 
 const { query } = require('./db');
 
@@ -29,25 +29,37 @@ async function main() {
     JOIN   pg_catalog.pg_namespace n ON n.oid = c.relnamespace
     WHERE c.relname = '${DB_CONSTANTS.EVENTS_DB}'  
     );`)
-    
+
   if (check.rows[0].exists) {
     const res = await query(`SELECT * FROM ${DB_CONSTANTS.EVENTS_DB}`)
     let tables
-   for(i = 0; i< res.rows.length; i++){
-     tables+=res.rows[i].ticketstablename
-    if(i < res.rows.length -1){
-      tables += ','
+    for (i = 0; i < res.rows.length; i++) {
+      tables += res.rows[i].ticketstablename
+      if (i < res.rows.length - 1) {
+        tables += ','
+      }
     }
-   }
-  
+
     await query(`DROP TABLE IF EXISTS ${tables}`)
   }
 
   await query(`DROP VIEW IF EXISTS ${DB_CONSTANTS.EVENTS_INFO_VIEW}`)
   // drop tables if exists
 
-  await query(`DROP TABLE IF EXISTS ${DB_CONSTANTS.CHIRO_TIX_SETTINGS_DB},${DB_CONSTANTS.ORDERS_DB}, ${DB_CONSTANTS.SEARCH_EVENTS_DB}, ${DB_CONSTANTS.SPEAKERS_CONNECT_DB}, ${DB_CONSTANTS.SPEAKERS_DB}, ${DB_CONSTANTS.TICKETS_TYPE_DB}, 
-  ${DB_CONSTANTS.EVENTS_DB},${DB_CONSTANTS.CITIES_DB}, ${DB_CONSTANTS.COUNTRIES_DB}, ${DB_CONSTANTS.TAGS_DB}, ${DB_CONSTANTS.TAGS_CONNECT_DB}, ${DB_CONSTANTS.ORGANIZATIONS_DB}, ${DB_CONSTANTS.CATEGORIES_DB}`);
+  await query(`DROP TABLE IF EXISTS
+    ${DB_CONSTANTS.CHIRO_TIX_SETTINGS_DB},
+    ${DB_CONSTANTS.ORDERS_DB}, 
+    ${DB_CONSTANTS.SEARCH_EVENTS_DB}, 
+    ${DB_CONSTANTS.SPEAKERS_CONNECT_DB}, 
+    ${DB_CONSTANTS.SPEAKERS_DB}, 
+    ${DB_CONSTANTS.TICKETS_TYPE_DB}, 
+    ${DB_CONSTANTS.EVENTS_DB},
+    ${DB_CONSTANTS.CITIES_DB}, 
+    ${DB_CONSTANTS.COUNTRIES_DB}, 
+    ${DB_CONSTANTS.TAGS_DB}, 
+    ${DB_CONSTANTS.TAGS_CONNECT_DB}, 
+    ${DB_CONSTANTS.ORGANIZATIONS_DB},
+    ${DB_CONSTANTS.CATEGORIES_DB}`);
   console.info('Tables deleted');
 
   // create tables from schemas
@@ -66,7 +78,7 @@ async function main() {
     const eventsInfoView = await readFileAsync('./sql/eventsInfoView.sql')
     const orders = await readFileAsync('./sql/orders.sql')
     const chiroTixSettings = await readFileAsync('./sql/chiroTixSettings.sql')
-    
+
 
 
     await query(categories.toString('utf8'));

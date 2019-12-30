@@ -90,7 +90,8 @@ async function buyTickets(eventId, buyerId, tickets, buyerInfo, receipt, insuran
         let result = await client.query(query)
         let boughtTickets = await formatter.formatTickets(result.rows)
 
-
+        const chiroInfoResult = await client.query(`select receiptinfo from ${DB_CONSTANTS.CHIRO_TIX_SETTINGS_DB}`)
+        const chiroInfo = chiroInfoResult.rows[0].receiptinfo
 
 
 
@@ -98,6 +99,7 @@ async function buyTickets(eventId, buyerId, tickets, buyerInfo, receipt, insuran
         message.boughtTickets = boughtTickets
         message.orderDetails = orderDetails
         message.success = true
+        message.chiroInfo = chiroInfo
     } catch (e) {
         await client.query('ROLLBACK')
         console.log("BuyTickets error: ", e)
