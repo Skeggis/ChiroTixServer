@@ -57,10 +57,11 @@ async function insertEventRoute(req, res){
     tickets,
     speakers,
     tags,
-    category
+    category,
+    schedule
   } = req.body.data
 
-
+console.log("SCHEDULE", schedule)
   const event = {
     name,
     startDate,
@@ -78,7 +79,8 @@ async function insertEventRoute(req, res){
     tickets,
     speakers,
     tags,
-    category
+    category,
+    schedule
   }
 
   const result = await insertEvent(event)
