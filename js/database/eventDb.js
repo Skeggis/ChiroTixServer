@@ -223,7 +223,7 @@ async function updateEventDb(id, event) {
   let success = false
   const client = await getClient()
   try {
-    await client.query('BEGIN')//TODO: change into a single query, i.e. no BEGIN nor ROLLBACK. ?
+    await client.query('BEGIN')
     let t = ''
     let counter = 0
     Object.keys(event).forEach(key => {
