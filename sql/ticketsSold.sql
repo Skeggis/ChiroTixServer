@@ -1,8 +1,8 @@
 (
      id serial PRIMARY key,
      name varchar(255),
-     eventid integer not null,
-     tickettypeid integer not null,
+     eventid integer references events(id),
+     tickettypeid integer references tickets(id),
      price numeric(15,6) CHECK (price >= 0) NOT null,
      issold boolean not null default false,
      isbuying boolean not null default false,
