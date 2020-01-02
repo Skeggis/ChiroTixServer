@@ -28,7 +28,6 @@ const storage = multer.diskStorage({
     cb(null, 'uploads/')
   },
   filename: function(req, file, cb) {
-    console.log(file)
     cb(null, file.originalname)
   }
 })
@@ -61,7 +60,6 @@ async function insertEventRoute(req, res){
     schedule
   } = req.body.data
 
-console.log("SCHEDULE", schedule)
   const event = {
     name,
     startDate,

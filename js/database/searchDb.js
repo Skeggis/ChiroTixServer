@@ -31,15 +31,16 @@ const {SYSTEM_ERROR} = require('../Messages')
  * }
  */
 async function search({searchString='', organizations=[], countries=[],
-cities=[], categories=[], tags=[], speakers=[],  dates={},price={},CECredits={}}){
+cities=[], categories=[], tags=[], speakers=[],  dates={},price={},CECredits={}} = {}){
+    searchString += ' ' + tags.join(' ') + ' ' + speakers.join(' ')
     let query = `select * from ${DB_CONSTANTS.SEARCH_EVENTS_DB} where`
     let zingle = false
     if(organizations.length > 0){ query += ` ${organizationsSearchQuery(organizations)}`; zingle=true}
     if(countries.length > 0){ query += `${zingle ? ' and':''} ${countriesSearchQuery(countries)}`; zingle=true}
     if(cities.length > 0){ query += `${zingle ? ' and':''} ${citiesSearchQuery(cities)}`; zingle=true}
     if(categories.length > 0){ query += `${zingle ? ' and':''} ${categoriesSearchQuery(categories)}`; zingle=true}
-    if(tags.length > 0){ query += `${zingle ? ' and':''} ${tagsSearchQuery(tags)}`; zingle=true}
-    if(speakers.length > 0){ query += `${zingle ? ' and':''} ${speakersSearchQuery(speakers)}`; zingle=true}
+    // if(tags.length > 0){ query += `${zingle ? ' and':''} ${tagsSearchQuery(tags)}`; zingle=true}
+    // if(speakers.length > 0){ query += `${zingle ? ' and':''} ${speakersSearchQuery(speakers)}`; zingle=true}
     if(dates.startDate && dates.endDate){ query += `${zingle ? ' and':''} ${datesSearchQuery(dates.startDate, dates.endDate)}`; zingle=true}
     if(price.minPrice && price.maxPrice){ query += `${zingle ? ' and':''} ${priceSearchQuery(price.minPrice, price.maxPrice)}`; zingle=true}
     if(CECredits.minCECredits && CECredits.maxCECredits){ query += `${zingle ? ' and':''} ${CECreditsSearchQuery(CECredits.minCECredits, CECredits.maxCECredits)}`; zingle=true}
@@ -50,7 +51,6 @@ cities=[], categories=[], tags=[], speakers=[],  dates={},price={},CECredits={}}
     let result = await db.query(query)
     //TOdo: format
     let events = await formatter.formatSearchEvents(result.rows)
-    console.log(events)
     return events
 }
 
@@ -118,10 +118,8 @@ async function GetInitialSearchDb(){
 
         //Featured events
         const featured = await client.query(`select * from ${DB_CONSTANTS.SEARCH_EVENTS_DB} order by featurednr asc limit ${featuredLimit}`)
-       console.log(featured.rows)
         const t = formatter.formatSearchEvents(featured.rows)
         message.result.featured = t
-        console.log('kommon',t)
         await client.query('COMMIT')
         message.success = true
     } catch (e){

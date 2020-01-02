@@ -1,3 +1,32 @@
+async function formatTicketForCustomer(ticket){
+    let ownerInfo = {}
+
+    for(let i = 0; i < ticket.ownerData.length; i++){
+        let info = ticket.ownerData[i]
+        ownerInfo[info.label] = info.value
+    }
+
+    return {
+        ticketType: ticket.name,
+        ...ownerInfo,
+
+        ticketBoughtDate: ticket.reservedDate,//This is the reserved date. FixIt. TODO.
+        buyerName: ticket.buyerInfo.name,
+        buyerEmail: ticket.buyerInfo.email,
+        buyerPhone: ticket.buyerInfo.phone,
+
+        ticketPrice: parseFloat(ticket.price).toFixed(2),
+    }
+}
+
+async function formatTicketsForCustomer(tickets){
+    let newTickets = []
+    for(let i = 0; i < tickets.length; i++){
+        if(!tickets[i].isSold){continue;}
+        newTickets.push(await formatTicketForCustomer(tickets[i]))}
+    return newTickets
+}
+
 async function formatTicketType(ticket){
     return {
         id: ticket.id,
@@ -35,7 +64,13 @@ async function formatTicket(ticket){
         ownerInfo: ticket.ownerinfo,
         date: ticket.date,
         termsTitle: ticket.termstitle,
-        termsText: ticket.termstext
+        termsText: ticket.termstext,
+        price: ticket.price,
+        
+        isBuying: ticket.isbuying,
+        isSold: ticket.issold,
+        reservedDate: ticket.reserveddate,
+        ownerData: ticket.ownerdata
     }
 }
 
@@ -238,7 +273,7 @@ async function formatSchedule(schedule){
       let endTime = new Date(schedule[i].endTime)
       startTime = startTime.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
       endTime = endTime.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })
-      newSchedule.push(`${day} ${startTime} - ${endTime}`)
+      newSchedule.push(`${day}: ${startTime} - ${endTime}`)
     }
   
     return {dates, newSchedule}
@@ -287,5 +322,7 @@ module.exports = {
     formatSchedule,
     formatChiroTixSettings,
     formatUser,
-    formatUsers
+    formatUsers,
+    formatTicketForCustomer,
+    formatTicketsForCustomer
 }
