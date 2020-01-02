@@ -42,9 +42,13 @@ async function buyTickets(eventId, buyerId, tickets, buyerInfo, receipt, insuran
         const {eventInfo} = await formatter.formatEventInfoView(eventInfoResponse.rows)
         const eventTicketsTable = eventInfo.ticketsTableName
 
+        //get the order id by incrementing the latest entry
+        const lastOrderNr = await client.query(`select ordernr from ${DB_CONSTANTS.ORDERS_DB} where date = (select max(date) from ${DB_CONSTANTS.ORDERS_DB})`)
+        const newOrdrerNr = lastOrderNr.rows[0].ordernr + 1
+
         //Insert into the orders table
-        const ordersQuery = `insert into ${DB_CONSTANTS.ORDERS_DB} (orderid, eventid, receipt, tickets, insurance, insuranceprice, buyerinfo, buyerid)
-                values ($1, $2, $3, $4, $5, $6, $7, $8) returning *`
+        const ordersQuery = `insert into ${DB_CONSTANTS.ORDERS_DB} (orderid, eventid, receipt, tickets, insurance, insuranceprice, buyerinfo, buyerid, ordernr)
+                values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning *`
         const orderInsertResult = await client.query(ordersQuery,
             [crypto.randomBytes(40).toString('hex'),
                 eventId,
@@ -53,7 +57,8 @@ async function buyTickets(eventId, buyerId, tickets, buyerInfo, receipt, insuran
                 insurance,
                 insurancePrice,
             JSON.stringify(buyerInfo),
-            buyerId
+            buyerId,
+            newOrdrerNr
             ])
         const orderDetails = formatter.formatOrderDetails(orderInsertResult.rows[0])
 

@@ -15,7 +15,7 @@ const DB_CONSTANTS = {
   ORDERS_DB,
   CHIRO_TIX_SETTINGS_DB,
   USERS_DB,
-  TICKETS_TYPE_DB
+  TICKETS_TYPE_DB,
 } = process.env;
 const HOST_URL = process.env.HOST_URL
 

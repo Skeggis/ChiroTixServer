@@ -8,5 +8,6 @@ create table orders(
   insuranceprice integer,
   buyerinfo jsonb default '{}',
   buyerid text,
+  ordernr integer unique,
   date timestamptz not null default current_timestamp
 );
