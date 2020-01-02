@@ -1,3 +1,12 @@
+async function noUndefinedKeys(obj){
+    let keys = Object.keys(obj)
+    for(let i = 0; i < keys.length; i++){
+        let type = typeof obj[keys[i]]
+        if(type !== 'string' && (type === 'undefined' || obj[keys[i]] === null)){delete obj[keys[i]]}
+    }
+    return obj
+}
+
 async function formatTicketForCustomer(ticket){
     let ownerInfo = {}
 
@@ -52,7 +61,7 @@ async function formatTickets(tickets){
 }
 
 async function formatTicket(ticket){
-    return{
+    let theTicket = await noUndefinedKeys({
         id: ticket.id,
         eventId: ticket.eventid,
         name: ticket.name,
@@ -67,11 +76,13 @@ async function formatTicket(ticket){
         termsText: ticket.termstext,
         price: ticket.price,
         
+        //
         isBuying: ticket.isbuying,
         isSold: ticket.issold,
         reservedDate: ticket.reserveddate,
         ownerData: ticket.ownerdata
-    }
+    })
+    return theTicket
 }
 
 async function formatEvent(event){
@@ -221,12 +232,14 @@ async function formatSpeakers(speakers){
     return newSpeakers
 }
 
-function formatOrderDetails(details){
+async function formatOrderDetails(details){
+    let tickets = details.tickets
+    for(let i = 0; i < tickets.length; i++){tickets[i].date = new Date(tickets[i].date)}
     return {
         orderId: details.orderid,
         eventId: details.eventid,
         receipt: details.receipt,
-        tickets: details.tickets,
+        tickets: tickets,
         insurance: details.insurance,
         insurancePrice: parseFloat(details.insuranceprice).toFixed(2),
         buyerInfo: details.buyerinfo,

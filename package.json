@@ -7,6 +7,7 @@
     "start": "node app.js",
     "dev": "nodemon app.js",
     "test": "mocha -R spec --recursive --bail --exit=true",
+    "testDb":"mocha -R spec --recursive --bail --exit=true ./test/database/ticketDb.test.js",
     "setup": "node ./js/database/setup.js",
     "testing": "mocha -R spec --bail --exit=true ./test/setup/setup.test.js ./test/events/createEvent.test.js",
     "searchTest": "mocha -R spec --bail --exit=true ./test/setup/setup.test.js ./test/search/searchEvent.test.js",
@@ -46,6 +47,7 @@
   },
   "devDependencies": {
     "chai": "^4.2.0",
+    "faker": "^4.1.0",
     "mocha": "^6.2.2"
   }
 }

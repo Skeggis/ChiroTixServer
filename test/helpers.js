@@ -2,34 +2,39 @@ const originalLogFunction = console.log;
 const originalErrorFunction = console.error;
 let output;
 let errorOutput;
-async function silence(){
-    
-beforeEach(async function() {
-  output = '';
-  errorOutput = ''
-  console.log = (msg) => {
-    output += msg + '\n';
-  };
+async function silence() {
 
-  console.error = (msg) => {
-    errorOutput += msg +'\n'
-  }
-});
+  beforeEach(async function () {
+    output = '';
+    errorOutput = ''
+    console.log = (msg) => {
+      output += msg + '\n';
+    };
 
-    afterEach(async function() {
-        console.log = originalLogFunction; // undo dummy log function
-        console.error = originalErrorFunction
-        if (this.currentTest.state === 'failed') {
-          console.log(output);
-          console.error(errorOutput)
-        }
-      });
+    console.error = (msg) => {
+      errorOutput += msg + '\n'
+    }
+  });
 
-}
-
-async function verbose(){
+  afterEach(async function () {
     console.log = originalLogFunction; // undo dummy log function
-    console.log(output);
+    console.error = originalErrorFunction
+    if (this.currentTest.state === 'failed') {
+      console.log(output);
+      console.error(errorOutput)
+    }
+  });
+
 }
 
-module.exports = {silence,verbose}
+async function verbose() {
+  console.log = originalLogFunction; // undo dummy log function
+  console.log(output);
+}
+
+
+async function ordersTableDataFormat(){
+  
+}
+
+module.exports = { silence, verbose }

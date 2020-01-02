@@ -132,11 +132,12 @@ async function checkForAvailableTickets(ticketTypesForEvent, ticketTypesToBuy) {
  * @param {Integer} eventId
  * @param {String} buyerId
  * @param {Array} tickets : [{
- *                  id: Integer,
- *                  ownerInfo: {
- *                          name: String,
- *                          SSN: String (?)
- *                      }
+ *                  ticketTypeId: Integer,
+ *                  id: Integer, //This is the id of the ticket in the SoldTable!
+ *                  ownerInfo: [{
+ *                          label: String,
+ *                          value: String
+ *                      }]
  *              }]
  * @param {JSON} buyerInfo : {
  *                      name: String,
@@ -144,32 +145,6 @@ async function checkForAvailableTickets(ticketTypesForEvent, ticketTypesToBuy) {
  *                      SSN: String (?)
  *                  }    
  */
-// {
-//     "name":"ChiroPraktik 101",
-//     "country":"Germany",
-//     "city":"Berlin",
-//     "streetName": "Agnes-Wabnitz-Straße 9, 10249",
-//     "dates": "Jan 3-5, 2020",
-//     "schedule": ["Fri:   10:00 AM - 6:30 PM",
-//         "Sat:  8:30   AM - 6:30 PM",
-//         "Sun: 8:00   AM - 1:00 PM"],
-//     "tickets":[{
-//         "name":"Chiropraktor",
-//         "price":333.33333,
-//         "id":"123",
-//         "ownerInfo":[{
-//             "label":"Attendee name",
-//             "value":"Þórður Ágústsson"
-//         },{
-//             "label":"School",
-//             "value":"Macquarie University"
-//         }]
-//     }],
-//     "CECredits":3,
-//     "organization":"ICPA",
-//     "termsTitle":"Tickets Terms",
-//     "orderId": "109238"
-// }
 async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo = {}, insurance = null, insurancePrice = 0, ticketTypes = {} }) {
     let isBuying = await ticketDb.isBuying(eventId, buyerId)
 

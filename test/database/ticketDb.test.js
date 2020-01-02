@@ -8,15 +8,21 @@ const {
     NEW_SPEAKERS,
     NEW_ORGANIZATIONS,
     TICKET_TYPES,
-    TAGS_IDS
+    TAGS_IDS,
+    NORMAL_BUYER_INFO,
+    RECEIPT
 } = require('../testData')
-
+const faker = require('faker')
 const ticketDb = require('../../js/database/ticketDb')
-
+const formatter = require('../../js/formatter')
+const {
+    DB_CONSTANTS
+} = require('../../js/helpers')
 
 const {
+    ORDERS_DB,
     TICKETS_TYPE_DB
-} = process.env;
+} = DB_CONSTANTS;
 //TODO: change description into TDD (i.e. descriping the functions not behavior of buyer)
 //TODO: Check DB, somehow elegantly.
 describe('#ticketDb.js', async function (){
@@ -28,6 +34,7 @@ describe('#ticketDb.js', async function (){
     let ticketsReservedForBuyer = []
 
     before(async function () {
+        this.timeout(5000)
         let event = {
             ...NORMAL_EVENT,
             speakers: NEW_SPEAKERS,
@@ -35,6 +42,8 @@ describe('#ticketDb.js', async function (){
             tickets: TICKET_TYPES,
             tags: TAGS_IDS
         }
+
+        console.log(event)
         const {id} = await insertEventDb(event)
         eventId = id
     })
@@ -81,17 +90,17 @@ describe('#ticketDb.js', async function (){
             ticketsReservedForBuyer = ticketsReservedForBuyer.concat(result.reservedTickets)
         }
 
-        it('should succeed to reserve 2 tickets of the type he wants.', async function(){ await successPath(eventId, buyerId, [{id:ticketTypes[0].id, amount:2}]) })
+        it('should succeed to reserve 2 tickets of the type he wants.', async function(){ await successPath(eventId, buyerId, [{...ticketTypes[0], amount:2}]) })
 
-        it('should succeed to reserve 2 tickets of both the types he wants.', async function(){ await successPath(eventId, buyerId, [{id:ticketTypes[0].id, amount:2},{id:ticketTypes[1].id, amount:2}]) })
+        it('should succeed to reserve 2 tickets of both the types he wants.', async function(){ await successPath(eventId, buyerId, [{...ticketTypes[0], amount:2},{...ticketTypes[1], amount:2}]) })
 
-        it('should fail to reserve tickets because there are not as many tickets available as the buyer wants', async function(){ await failPath(eventId, buyerId,[{id:ticketTypes[0].id, amount:10000}]) })
+        it('should fail to reserve tickets because there are not as many tickets available as the buyer wants', async function(){ await failPath(eventId, buyerId,[{...ticketTypes[0], amount:10000}]) })
 
-        it('should fail to reserve tickets because there are not as many tickets available as the buyer wants of one type', async function(){ await failPath(eventId, buyerId,[{id:ticketTypes[0].id, amount:1},{id:ticketTypes[1].id, amount:10000}]) })
+        it('should fail to reserve tickets because there are not as many tickets available as the buyer wants of one type', async function(){ await failPath(eventId, buyerId,[{...ticketTypes[0], amount:1},{...ticketTypes[1], amount:10000}]) })
 
         it('should fail because an invalid ticketTypeId was given', async function(){ await failPath(eventId, buyerId, [{id:"nammi", amount:2}]) })
     
-        it('should fail because an invalid buyerId was given', async function(){ await failPath(eventId, undefined, [{id:ticketTypes[0].id, amount:2}]) })
+        it('should fail because an invalid buyerId was given', async function(){ await failPath(eventId, undefined, [{...ticketTypes[0], amount:2}]) })
     })
 
 
@@ -120,7 +129,7 @@ describe('#ticketDb.js', async function (){
     //TODO: releaseAllTicketsForBuyer returns true also iff the query fails, because this is only a cleanup function therefore we dont want 
     // the user to see an error if it fails, but we should handle it differently!
     context('.releaseAllTicketsForBuyer: A potential buyer wants to rethink his actions and leaves the site or goes back to step 1', async function(){
-        beforeEach(async function(){ await ticketDb.reserveTickets(eventId, buyerId, [{id:ticketTypes[0].id, amount:2}]) })
+        beforeEach(async function(){ await ticketDb.reserveTickets(eventId, buyerId, [{...ticketTypes[0], amount:2}]) })
 
         it('should release all the tickets that he had reserved before', async function(){
             let success = await ticketDb.releaseAllTicketsForBuyer(buyerId,eventId)
@@ -169,15 +178,101 @@ describe('#ticketDb.js', async function (){
 
 
     //Sinon, i.e. buy tickets but stop the doneBuying function from being called.
-    context('.isBuying:', async function(){
+    context('.isBuying:', async function(){ it('isBuyingTest') })
+
+    context('.doneBuying', async function(){ it('doneBuyingTest')})
+
+    context('.getAllTicketsSoldIn', async function(){ it('getAllTicketsSoldInTest')})
+
+    context('.buyTickets: ', async function(){
+        let myReservedTickets;
+        let reservedTicketIds;
+        
+        beforeEach(async function(){ 
+            reservedTicketIds = []
+            verbose()
+            let t = await ticketDb.reserveTickets(eventId, buyerId, [{...ticketTypes[0], amount:2}])
+            console.log(t)
+            myReservedTickets = t.reservedTickets 
+            for(let i = 0; i < myReservedTickets.length; i++){
+                myReservedTickets[i].ownerInfo[0].value = faker.name.findName()
+                reservedTicketIds.push(myReservedTickets[i].id)
+            }
+        })
+
+        context('Test when the component fails and when it succeeds', async function(){
+            async function failPath(eId, bId, tickets, bInfo, receipt){
+                let result = await ticketDb.buyTickets(eId, bId, tickets, bInfo, receipt)
+
+                expect(result.success).to.be.false
+                expect(result).to.have.keys(['success','messages'])
+                expect(result.messages).to.have.lengthOf(1)
+            }
+
+            it('should succeed to buy the tickets for the buyer', async function(){
+                let result = await ticketDb.buyTickets(eventId, buyerId, myReservedTickets, NORMAL_BUYER_INFO, RECEIPT)
+    
+                expect(result.success).to.be.true
+                expect(result).to.have.keys(['success', 'boughtTickets', 'orderDetails', 'eventInfo', 'chiroInfo'])
+                expect(result.boughtTickets).to.have.lengthOf(myReservedTickets.length)
+            })
+
+            it('should fail to buy the tickets for the buyer because an invalid id was given', async function(){ await failPath(-1, buyerId, myReservedTickets, NORMAL_BUYER_INFO, RECEIPT) })
+
+            it('should fail to buy the tickets for the buyer because an invalid buyerId was given', async function(){ await failPath(eventId, 'sucker', myReservedTickets, NORMAL_BUYER_INFO, RECEIPT) })
+        })
+
+        context('Test wether the data was inserted into the Db correctly on a successful boughtTickets', async function(){
+            let orderDetails;
+            let eventInfo;
+            let ticketTypesBefore;
+            let ticketTypeIds;
+            //The "Act" is in the beforeEach but we check. TODO: Add sinon so that each database query is its own function in buyTickets(), and sinon spies on each (?)
+            this.beforeEach('Before buyTickets Database Check',async function(){
+                ticketTypeIds = []
+                for(let i = 0; i<myReservedTickets.length; i++){ticketTypeIds.push(myReservedTickets[i].ticketTypeId)}
+                let result = await db.query(`Select * from ${TICKETS_TYPE_DB} where id=Any('{${ticketTypeIds.toString()}}') order by id`)
+                ticketTypesBefore = result.rows
+
+                result = await ticketDb.buyTickets(eventId, buyerId, myReservedTickets, NORMAL_BUYER_INFO, RECEIPT)
+
+                expect(result.success).to.be.true
+                
+                orderDetails = result.orderDetails
+                eventInfo = result.eventInfo
+            })
+
+            it('should insert buy order correctly into OrdersDB', async function(){
+                let result = await db.query(`select * from ${ORDERS_DB} where orderid='${orderDetails.orderId}'`)
+                let insertedOrderDetails = await formatter.formatOrderDetails(result.rows[0])
+
+                expect(insertedOrderDetails).to.include({orderId: orderDetails.orderId, eventId: eventId})
+                expect(insertedOrderDetails).to.have.property('tickets').which.is.an('array').and.eqls(myReservedTickets)
+                expect(insertedOrderDetails).to.have.property('buyerInfo').which.is.an('object').and.eqls(NORMAL_BUYER_INFO)
+                expect(insertedOrderDetails).to.have.property('receipt').which.is.an('object').and.eqls(RECEIPT)
+            })
+
+            //TODO: Add assertion for ownerInfo etc. not just for isSold!
+            it('should update the reserved tickets in ticketsSold table with the ownerInfo and isSold=true, etc', async function(){
+                let result = await db.query(`select * from ${eventInfo.ticketsTableName} where id=Any('{${reservedTicketIds.join(',')}}') order by id`)
+                let tickets = await formatter.formatTickets(result.rows)
+
+                expect(tickets).to.have.lengthOf(reservedTicketIds.length)
+                for(let i = 0; i < tickets.length; i++){ expect(tickets[i]).to.include({isSold:true}) }
+            })
+
+            it('should update ticketTypes table, i.e. decrement reserved and increment sold', async function(){
+                let result = await db.query(`Select * from ${TICKETS_TYPE_DB} where id=Any('{${ticketTypeIds.toString()}}') order by id`)
+                expect(result).to.have.property('rows').which.is.an('array').with.length.of.at.least(1)
+                // for(let i = 0; i < result.rows; i++){
+
+                // }
+            })
+        })
+
+        
 
     })
-
-    context('.doneBuying', async function(){})
-
-    context('.getAllTicketsSoldIn', async function(){})
-
-    context('.buyTickets', async function(){})
 
 
 
