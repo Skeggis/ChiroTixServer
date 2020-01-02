@@ -22,8 +22,8 @@ async function search(req, res) {
             countries = false,
             cities = false,
             categories = false,
-            tags = false,
-            speakers = false,
+            tags = false, //TODO: change so that ReactClient sends tags as [{id:Integer, name:string}] and then change so that searchDb factors out the tag-names into an [String]-array.
+            speakers = false, //TODO: same as with tags!
             dates = false,
             price = false,
             CECredits = false

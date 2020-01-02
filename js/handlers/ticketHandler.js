@@ -1,3 +1,4 @@
+require('dotenv').config()
 const {HOST} = require('../helpers')
 const ticketDb = require('../database/ticketDb')
 const settingsDb = require('../database/settingsDb')
@@ -6,6 +7,8 @@ const {
     sendReceiptMail
 } = require('../handlers/emailHandler')
 const { createTicketsPDF } = require('../createPDFHTML/createPDF')
+
+const WEBSITE_URL = process.env.WEBSITE_URL
 
 
 
@@ -30,25 +33,25 @@ async function releaseAllTicketsForBuyer({ buyerId = -1, eventId = -1 }) {
  *              ticketTypeId: Integer
  *          }] 
  */
-async function releaseTickets({ buyerId = -1, eventId = -1, tickets = [] }) {
-    let reservedTicketIds = []
-    let ticketTypesAmount = []
-    //Count how many tickets of each type the buyer had reserved, and make an array with all the ticket.ids (ids from the sold table)
-    for (let j = 0; j < tickets.length; j++) {
-        let ticket = tickets[j]
-        reservedTicketIds.push(ticket.id)
-        if (!ticketTypesAmount[ticket.ticketTypeId]) { ticketTypesAmount[ticket.ticketTypeId] = 1 }
-        else { ticketTypesAmount[ticket.ticketTypeId]++ }
-    }
+// async function releaseTickets({ buyerId = -1, eventId = -1, tickets = [] }) {
+//     let reservedTicketIds = []
+//     let ticketTypesAmount = []
+//     //Count how many tickets of each type the buyer had reserved, and make an array with all the ticket.ids (ids from the sold table)
+//     for (let j = 0; j < tickets.length; j++) {
+//         let ticket = tickets[j]
+//         reservedTicketIds.push(ticket.id)
+//         if (!ticketTypesAmount[ticket.ticketTypeId]) { ticketTypesAmount[ticket.ticketTypeId] = 1 }
+//         else { ticketTypesAmount[ticket.ticketTypeId]++ }
+//     }
 
-    let reservedTickets = await ticketDb.getReservedTickets(reservedTicketIds, eventId, buyerId)
+//     let reservedTickets = await ticketDb.getReservedTickets(reservedTicketIds, eventId, buyerId)
 
-    if (!reservedTickets || reservedTickets.length != reservedTicketIds.length) { return SYSTEM_ERROR }
+//     if (!reservedTickets || reservedTickets.length != reservedTicketIds.length) { return SYSTEM_ERROR }
 
-    let response = await ticketDb.releaseTickets(reservedTicketIds, ticketTypesAmount, eventId)
+//     let response = await ticketDb.releaseTickets(reservedTicketIds, ticketTypesAmount, eventId)
 
-    return response
-}
+//     return response
+// }
 
 /**
  * 
@@ -169,7 +172,7 @@ async function checkForAvailableTickets(ticketTypesForEvent, ticketTypesToBuy) {
 // }
 async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo = {}, insurance = null, insurancePrice = 0, ticketTypes = {} }) {
     let isBuying = await ticketDb.isBuying(eventId, buyerId)
-    console.log("ISBUYING!!!!", isBuying)
+
     if(isBuying){return {success:false, messages:[{type:"error", message:"We are processing your payment. Please wait a few moments."}]}}
 
     //Check if this buyer has reserved the tickets he is trying to buy.
@@ -208,7 +211,7 @@ async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo 
 
     const orderId = buyingTicketsResponse.orderDetails.orderId
     await sendReceiptMail(
-        `${HOST}/orders/${orderId}`,
+        `${WEBSITE_URL}/orders/${orderId}`,
         'noreply@chirotix.com',
         buyingTicketsResponse.orderDetails.buyerInfo.email,
         'ChiroTix order',
@@ -270,4 +273,4 @@ async function ticketsReservedMatchBuyerTickets(reservedTickets, tickets) {
 
 
 
-module.exports = { reserveTickets, buyTickets, releaseTickets, releaseAllTicketsForBuyer, getEventInfoWithTicketTypes }
+module.exports = { reserveTickets, buyTickets, releaseAllTicketsForBuyer, getEventInfoWithTicketTypes }

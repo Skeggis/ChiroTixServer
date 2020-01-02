@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
-    "test": "mocha -R spec --bail --exit=true",
+    "test": "mocha -R spec --recursive --bail --exit=true",
     "setup": "node ./js/database/setup.js",
     "testing": "mocha -R spec --bail --exit=true ./test/setup/setup.test.js ./test/events/createEvent.test.js",
     "searchTest": "mocha -R spec --bail --exit=true ./test/setup/setup.test.js ./test/search/searchEvent.test.js",
@@ -41,6 +41,7 @@
     "puppeteer": "^2.0.0",
     "socket.io": "^2.3.0",
     "validator": "^12.1.0",
+    "xlsx": "^0.15.4",
     "xss": "^1.0.6"
   },
   "devDependencies": {

@@ -14,7 +14,6 @@ let message = {
     await client.query('BEGIN');
     const result = await client.query(`select * from ${DB_CONSTANTS.ORDERS_DB} where orderid = $1`, [orderId])
     if(result.rows.length === 0){
-      console.log('her')
       return {
         success: false,
         message: 'No order with that id'

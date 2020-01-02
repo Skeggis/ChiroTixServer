@@ -8,6 +8,7 @@ async function connectSocket(server, app) {
     app.set('io', io)
 
     io.on("connection", async socket => {
+        console.log("CONNECTED!", socket.id)
         socket.buyerId = socket.handshake.query.buyerId
         socket.eventId = socket.handshake.query.eventId
 
@@ -24,9 +25,11 @@ async function connectSocket(server, app) {
         })
 
         socket.on("disconnect", async () => {
+            console.log("DISCONNECT:", socket.id)
             clearTimeout(socket.timeOut)
             await ticketHandler.releaseAllTicketsForBuyer({ buyerId: socket.buyerId, eventId: socket.eventId })
         });
+
     });
 
 }
