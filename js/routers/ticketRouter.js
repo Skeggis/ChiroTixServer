@@ -101,7 +101,8 @@ async function buyTickets(req, res){
             cardInformation = false,
             insurance = false,
             insurancePrice = 0,
-            ticketTypes = false
+            ticketTypes = false,
+            socketId
         }
     } = req
 

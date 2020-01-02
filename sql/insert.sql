@@ -41,6 +41,8 @@ insert into tickets (name, price, amount, eventid, ownerinfo) values ('ChiroPrac
 
 insert into organizations (name) values ('Best organization');
 
+insert into orders(orderid, eventid, ordernr) values ('6782a7e2d27cd1bcf7ae396b604926d298409d00608c1066b5146d8e8208b207b66a0fc182a1606e', 1, 200);
+
 insert into chirotixsettings (ticketstermstitle, ticketstermstext, receiptinfo) values('Tickets terms', '
 Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Mattis enim ut tellus elementum sagittis vitae et leo duis. Mollis nunc sed id semper risus. Volutpat odio facilisis mauris sit amet massa vitae tortor. Elementum eu facilisis sed odio morbi. Integer vitae justo eget magna. Mauris ultrices eros in cursus. Semper viverra nam libero justo laoreet sit amet cursus. Venenatis lectus magna fringilla urna. Dui sapien eget mi proin sed libero enim.
 

@@ -6,11 +6,11 @@ async function createUser({ name = '', email = '', password = '', confirmPasswor
     let errorMessages = [];
   
     if (!name || !email || !password || !confirmPassword) {
-      errors.push('Please enter all fields');
+      errorMessages.push('Please enter all fields');
     }
   
     var passErrorMessages = await arePasswordRequirementsMet(password, confirmPassword)
-    if (passErrorMessages.length > 0) { errorMessages.push(...passErrors) }
+    if (passErrorMessages.length > 0) { errorMessages.push(...passErrorMessages) }
   
     if (errorMessages.length > 0) { return {success: false, messages: errorMessages} } 
     else {
@@ -38,7 +38,7 @@ async function createUser({ name = '', email = '', password = '', confirmPasswor
   async function arePasswordRequirementsMet(password, confirmedPassword) {
     var messages = []
     if (password != confirmedPassword) { messages.push({type:"error",message:'Passwords do not match'}); }
-    if (password.length < 8) { errors.push({type:"error",message:'Password must be at least 8 characters'}); }
+    if (password.length < 8) { messages.push({type:"error",message:'Password must be at least 8 characters'}); }
     return messages
   }
 

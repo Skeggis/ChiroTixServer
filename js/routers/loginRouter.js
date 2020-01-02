@@ -11,7 +11,7 @@ const localAuth = async (req, res, next) => {
 
   passport.authenticate('local', function (err, user, info) {
       console.log("AUTHENTICAE", err, user, info)
-    if (err) { return res.send({success: false, messages:info.messages}); }
+    if (err) { return res.send({success: false, messages:info ? messages.info : [{type:"error", message:"System error"}]}); }
     if (!user) { return res.send({success: false, messages:info.messages}); }
 
     var accessToken = jwt.sign(user)

@@ -196,7 +196,8 @@ function formatOrderDetails(details){
         insurancePrice: parseFloat(details.insuranceprice).toFixed(2),
         buyerInfo: details.buyerinfo,
         buyerId: details.buyerid,
-        date: details.date
+        date: details.date,
+        orderNr: details.ordernr
     }
 }
 

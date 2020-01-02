@@ -42,9 +42,13 @@ async function buyTickets(eventId, buyerId, tickets, buyerInfo, receipt, insuran
         const {eventInfo} = await formatter.formatEventInfoView(eventInfoResponse.rows)
         const eventTicketsTable = eventInfo.ticketsTableName
 
+        //get the order id by incrementing the latest entry
+        const lastOrderNr = await client.query(`select ordernr from ${DB_CONSTANTS.ORDERS_DB} where date = (select max(date) from ${DB_CONSTANTS.ORDERS_DB})`)
+        const newOrdrerNr = lastOrderNr.rows[0].ordernr + 1
+
         //Insert into the orders table
-        const ordersQuery = `insert into ${DB_CONSTANTS.ORDERS_DB} (orderid, eventid, receipt, tickets, insurance, insuranceprice, buyerinfo, buyerid)
-                values ($1, $2, $3, $4, $5, $6, $7, $8) returning *`
+        const ordersQuery = `insert into ${DB_CONSTANTS.ORDERS_DB} (orderid, eventid, receipt, tickets, insurance, insuranceprice, buyerinfo, buyerid, ordernr)
+                values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning *`
         const orderInsertResult = await client.query(ordersQuery,
             [crypto.randomBytes(40).toString('hex'),
                 eventId,
@@ -53,7 +57,8 @@ async function buyTickets(eventId, buyerId, tickets, buyerInfo, receipt, insuran
                 insurance,
                 insurancePrice,
             JSON.stringify(buyerInfo),
-            buyerId
+            buyerId,
+            newOrdrerNr
             ])
         const orderDetails = formatter.formatOrderDetails(orderInsertResult.rows[0])
 
@@ -81,11 +86,11 @@ async function buyTickets(eventId, buyerId, tickets, buyerInfo, receipt, insuran
         }
 
         //Get the bought tickets, returning from the update above was not working, unfortunately. Perhaps because its inside BEGIN/COMMIT?. 
-        let boughtTicketIds = []
-        for (let j = 0; j < tickets.length; j++) { boughtTicketIds.push(tickets[j].id) }
-        query = `Select * from ${eventTicketsTable} where id = Any('{${boughtTicketIds.toString()}}')`
-        let result = await client.query(query)
-        let boughtTickets = await formatter.formatTickets(result.rows)
+        // let boughtTicketIds = []
+        // for (let j = 0; j < tickets.length; j++) { boughtTicketIds.push(tickets[j].id) }
+        // query = `Select * from ${eventTicketsTable} where id = Any('{${boughtTicketIds.toString()}}')`
+        // let result = await client.query(query)
+        // let boughtTickets = await formatter.formatTickets(result.rows)
 
         const chiroInfoResult = await client.query(`select receiptinfo from ${DB_CONSTANTS.CHIRO_TIX_SETTINGS_DB}`)
         const chiroInfo = chiroInfoResult.rows[0].receiptinfo
