@@ -47,6 +47,7 @@ async function reserveTickets(req, res){
     }
 
     var response = await ticketHandler.reserveTickets(data)
+    console.log(response)
     if(!response.success){return res.json(response)}
 
     let io = req.app.get('io')
@@ -98,11 +99,12 @@ async function buyTickets(req, res){
             eventId = false,
             tickets = false,
             buyerInfo = false,
-            cardInformation = false,
             insurance = false,
-            insurancePrice = 0,
             ticketTypes = false,
-            socketId = false
+            socketId = false,
+            Token = false,
+            borgun = false,
+            paypal = false,
         }
     } = req
 
@@ -115,8 +117,10 @@ async function buyTickets(req, res){
         tickets,
         buyerInfo,
         insurance,
-        insurancePrice,
-        ticketTypes
+        ticketTypes,
+        Token,
+        borgun,
+        paypal
     }
 
     var response = await ticketHandler.buyTickets(data)

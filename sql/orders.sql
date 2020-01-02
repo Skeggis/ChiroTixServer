@@ -9,5 +9,6 @@ create table orders(
   buyerinfo jsonb default '{}',
   buyerid text,
   ordernr integer unique,
+  paymentmethod varchar(255),
   date timestamptz not null default current_timestamp
 );
