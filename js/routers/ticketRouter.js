@@ -102,7 +102,7 @@ async function buyTickets(req, res){
             insurance = false,
             insurancePrice = 0,
             ticketTypes = false,
-            socketId
+            socketId = false
         }
     } = req
 
@@ -120,11 +120,12 @@ async function buyTickets(req, res){
     }
 
     var response = await ticketHandler.buyTickets(data)
+    res.json(response)
+
     if(response.success){ 
         let io = req.app.get('io')
         if(io.sockets.connected[socketId]) {clearTimeout(io.sockets.connected[socketId].timeOut)}
     }
-    res.json(response)
 }
 
 
@@ -149,16 +150,16 @@ async function releaseTickets(req,res){
         }
     } = req
 
-    if(!(buyerId && eventId && tickets)){ return res.json(BAD_REQUEST("Invalid body request.")) }
+    if(!(buyerId && eventId )){ return res.json(BAD_REQUEST("Invalid body request.")) }
     if( tickets.length === 0 ){ return res.json(BAD_REQUEST("Invalid amount of tickets. Zero tickets not allowed."))}
 
     const data = {
         buyerId,
-        eventId,
-        tickets
+        eventId
     }
 
-    var response = await ticketHandler.releaseTickets(data)
+    var response = await ticketHandler.releaseAllTicketsForBuyer(data)
+    
     if(response.success){
         let io = req.app.get('io')
         if(io.sockets.connected[socketId]) {clearTimeout(io.sockets.connected[socketId].timeOut)}
