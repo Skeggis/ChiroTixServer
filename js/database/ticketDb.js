@@ -7,9 +7,25 @@ const crypto = require('crypto');
 
 async function getEventInfoWithTicketTypes(eventId) {
     let query = `select * from ${DB_CONSTANTS.EVENTS_INFO_VIEW} where eventid=${eventId}`
-    let result = await db.query(query)
-    if (!result.rows[0]) { return false }
-    return await formatter.formatEventInfoView(result.rows)
+    let client = await db.getClient()
+    let temp
+    try {
+        await client.query('BEGIN')
+
+
+        let result = await client.query(query)
+        if (!result.rows[0]) { return false }
+        temp = await formatter.formatEventInfoView(result.rows)
+        const insurance = await client.query(`select insurancepercentage from ${CHIRO_TIX_SETTINGS_DB}`)
+        temp.insurancePercentage = insurance.rows[0].insurancepercentage
+    } catch (e) {
+        await client.query('ROLLBACK')
+        console.log("BuyTickets error: ", e)
+        return SYSTEM_ERROR
+    } finally {
+        client.end()
+    }
+    return temp
 }
 /**
  * @param {Integer} eventId
@@ -375,7 +391,7 @@ async function getTicketsPrice(tickets) {
     return price
 }
 
-async function getInsurancePercentage(){
+async function getInsurancePercentage() {
     const result = await db.query(`select insurancepercentage from ${CHIRO_TIX_SETTINGS_DB}`)
     return result.rows[0].insurancepercentage
 }
