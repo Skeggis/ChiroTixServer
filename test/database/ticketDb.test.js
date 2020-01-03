@@ -1,4 +1,3 @@
-require('dotenv').config()
 const {silence,verbose} = require('../helpers')
 const expect = require('chai').expect;
 const {insertEventDb} = require('../../js/database/eventDb')
@@ -24,7 +23,7 @@ const {
     TICKETS_TYPE_DB
 } = DB_CONSTANTS;
 //TODO: change description into TDD (i.e. descriping the functions not behavior of buyer)
-//TODO: Check DB, somehow elegantly.
+//TODO: Check DB, somehow elegantly for reserve- and releaseTickets.
 describe('#ticketDb.js', async function (){
     silence()
     let buyerId='myBuyerId'
@@ -34,6 +33,7 @@ describe('#ticketDb.js', async function (){
     let ticketsReservedForBuyer = []
 
     before(async function () {
+
         this.timeout(5000)
         let event = {
             ...NORMAL_EVENT,
@@ -42,8 +42,6 @@ describe('#ticketDb.js', async function (){
             tickets: TICKET_TYPES,
             tags: TAGS_IDS
         }
-
-        console.log(event)
         const {id} = await insertEventDb(event)
         eventId = id
     })
@@ -176,7 +174,6 @@ describe('#ticketDb.js', async function (){
     //It is too simple of a function to test (!?)
     context('.getTicketTypesOfEvent', async function(){})
 
-
     //Sinon, i.e. buy tickets but stop the doneBuying function from being called.
     context('.isBuying:', async function(){ it('isBuyingTest') })
 
@@ -187,13 +184,18 @@ describe('#ticketDb.js', async function (){
     context('.buyTickets: ', async function(){
         let myReservedTickets;
         let reservedTicketIds;
+        let amounts = [2,1]
         
         beforeEach(async function(){ 
             reservedTicketIds = []
-            verbose()
-            let t = await ticketDb.reserveTickets(eventId, buyerId, [{...ticketTypes[0], amount:2}])
-            console.log(t)
-            myReservedTickets = t.reservedTickets 
+            let tickets = []
+            for(let i = 0; i < amounts.length; i++){
+                tickets.push({
+                    ...ticketTypes[i],
+                    amount: amounts[i]
+                })
+            }
+            myReservedTickets = (await ticketDb.reserveTickets(eventId, buyerId, tickets)).reservedTickets 
             for(let i = 0; i < myReservedTickets.length; i++){
                 myReservedTickets[i].ownerInfo[0].value = faker.name.findName()
                 reservedTicketIds.push(myReservedTickets[i].id)
@@ -264,9 +266,10 @@ describe('#ticketDb.js', async function (){
             it('should update ticketTypes table, i.e. decrement reserved and increment sold', async function(){
                 let result = await db.query(`Select * from ${TICKETS_TYPE_DB} where id=Any('{${ticketTypeIds.toString()}}') order by id`)
                 expect(result).to.have.property('rows').which.is.an('array').with.length.of.at.least(1)
-                // for(let i = 0; i < result.rows; i++){
-
-                // }
+                for(let i = 0; i < amounts.length; i++){
+                    expect(result.rows[i].sold).to.equal(ticketTypesBefore[i].sold + amounts[i])
+                    expect(result.rows[i].reserved).to.equal(ticketTypesBefore[i].reserved - amounts[i])
+                }
             })
         })
 

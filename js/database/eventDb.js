@@ -482,7 +482,6 @@ module.exports = {
   getEventsDb,
   insertEventDb,
   getEventByIdDb,
-  // updateEventDb,
   updateTicketsTypeDb,
   getInsertValuesDb
 }
