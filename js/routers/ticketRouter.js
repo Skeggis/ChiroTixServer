@@ -51,7 +51,7 @@ async function reserveTickets(req, res){
     if(!response.success){return res.json(response)}
 
     let io = req.app.get('io')
-    let timer = await calculateTime(response.ownerInfos, response.reservedTickets.length)
+    let timer = await calculateTime(response.reservedTickets)
     let now = new Date()
     let releaseDate = new Date(now.getTime()+(timer))
 
@@ -63,10 +63,10 @@ async function reserveTickets(req, res){
     res.json(response)
 }
 
-async function calculateTime(ownerInfos, ticketsAmount){
+async function calculateTime(tickets){
     let ONE_MINUTE = 60000
     let time = ONE_MINUTE*7 //7 minutes for billingInfo
-    ownerInfos.forEach(info => { time += info.length*ONE_MINUTE  })
+    for(let i = 0; i < tickets.length; i++){ time += tickets[i].ownerInfo.length*ONE_MINUTE }
     time += ONE_MINUTE*10 //Ten minutes for the payment step
     return time
 }
