@@ -10,10 +10,10 @@ async function insertTag(req,res){
 
     if(!tag) {return res.status(400).json(BAD_REQUEST("Invalid body request."))}
 
-    let tag = await tagsDb.insertTag(tag)
-    if(tag){
+    let newTag = await tagsDb.insertTag(tag)
+    if(newTag){
         let message = CREATED("The tag was created.")
-        message.tag = tag
+        message.tag = newTag
         res.status(201).json(message)
     }
     res.status(400).json(BAD_REQUEST("Could not process the request"))
@@ -26,10 +26,10 @@ async function insertTags(req, res){
 
     if(!tags || tags.length === 0) {return res.status(400).json(BAD_REQUEST("Invalid body request."))}
 
-    let tags = await tagsDb.insertTags(tags)
-    if(tags){
+    let newTags = await tagsDb.insertTags(tags)
+    if(newTags){
         let message = CREATED("The tags were created.")
-        message.tags = tags
+        message.tags = newTags
         res.status(201).json(message)
     }
     res.status(400).json(BAD_REQUEST("Could not process the request"))
