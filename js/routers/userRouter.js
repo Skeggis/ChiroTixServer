@@ -11,7 +11,7 @@ const { catchErrors } = require('../helpers')
 const localAuth = async (req, res, next) => {
 
   passport.authenticate('local', function (err, user, info) {
-    if (err) { return res.send({success: false, messages:info.messages}); }
+    if (err) { return res.send({success: false, messages: !info ? [{type:"error", message:"System error. please try again later"}]:info.messages}); }
     if (!user) { return res.send({success: false, messages:info.messages}); }
 
     var accessToken = jwt.sign(user)
