@@ -20,7 +20,7 @@ const adminRouter = require('./js/routers/adminRouter')
 
 
 const app = express();
-app.use(cors({origin: '*'})) //Set options to only allow our frontend
+app.use(cors()) //Set options to only allow our frontend
 
 
 app.use(express.json());
