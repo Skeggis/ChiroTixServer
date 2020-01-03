@@ -9,7 +9,8 @@ const {
     TICKET_TYPES,
     TAGS_IDS,
     NORMAL_BUYER_INFO,
-    RECEIPT
+    RECEIPT,
+    generateNewOrganizations
 } = require('../testData')
 const faker = require('faker')
 const ticketDb = require('../../js/database/ticketDb')
@@ -33,12 +34,12 @@ describe('#ticketDb.js', async function (){
     let ticketsReservedForBuyer = []
 
     before(async function () {
-
+verbose()
         this.timeout(5000)
         let event = {
             ...NORMAL_EVENT,
             speakers: NEW_SPEAKERS,
-            organization: NEW_ORGANIZATIONS[0],
+            organization: {name:"mamma"},
             tickets: TICKET_TYPES,
             tags: TAGS_IDS
         }

@@ -23,10 +23,12 @@ const {
 
 describe('#eventDb.js: ', async function(){
 
-  context('.getEventsDb: ', async function(){})
-  context('.getEventByIdDb', async function(){})
-  context('.updateTicketsTypeDb', async function(){})
-  context('.getInsertValuesDb', async function(){})
-  context('.insertEventDb: ', async function(){})
+  context('.getInsertValuesDb', async function(){it('shouldTest.getInsertValuesDb', async function(){
+
+    let result = await eventDb.getInsertValuesDb()
+    console.log(result)
+  })})
+  context('.insertEventDb: ', async function(){it('shouldTest.insertEventDb', async function(){})})
+  context('.getEventByIdDb', async function(){it('shouldTest.getEventByIdDb', async function(){})})
 
 })
