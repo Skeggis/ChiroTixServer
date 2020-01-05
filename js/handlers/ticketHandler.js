@@ -2,12 +2,14 @@ require('dotenv').config()
 const { HOST } = require('../helpers')
 const ticketDb = require('../database/ticketDb')
 const settingsDb = require('../database/settingsDb')
-const { SYSTEM_ERROR } = require('../Messages')
+const { SYSTEM_ERROR, BAD_REQUEST } = require('../Messages')
 const {
     sendReceiptMail
 } = require('../handlers/emailHandler')
 const { createTicketsPDF } = require('../createPDFHTML/createPDF')
 const crypto = require('crypto')
+const checkoutNodeJssdk = require('@paypal/checkout-server-sdk');
+
 
 const WEBSITE_URL = process.env.WEBSITE_URL
 
@@ -171,7 +173,7 @@ async function checkForAvailableTickets(ticketTypesForEvent, ticketTypesToBuy) {
 //     "termsTitle":"Tickets Terms",
 //     "orderId": "109238"
 // }
-async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo = {}, insurance = null, ticketTypes = {}, borgun = false, paypal = false }) {
+async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo = {}, insurance = null, ticketTypes = {}, paymentOptions = {} }) {
     let isBuying = await ticketDb.isBuying(eventId, buyerId)
 
     if (isBuying) { return { success: false, messages: [{ type: "error", message: "We are processing your payment. Please wait a few moments." }] } }
@@ -191,38 +193,11 @@ async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo 
         tickets[i].termsText = settings.ticketsTermsText
     }
 
-    if (borgun) {
-        // const price = await calculatePrice(tickets, insurance)
-        // const orderId = crypto.randomBytes(6).toString('hex').toUpperCase()
-
-        // const borgunResult = await fetch('someapihere and private key', {
-        //     method: 'POST',
-        //     headers: {
-        //       'Accept': 'application/json',
-        //       'Content-Type': 'application/json'
-        //     },
-        //     data: JSON.stringify({
-        //         TransactionType: 'Sale',
-        //         Amount: price.totalPrice,
-        //         Currency: '840', //usd
-        //         TransactionDate: new Date().toISOString(),
-        //         OrderId: orderId,
-        //         PaymentMethod: {
-        //             PaymentType: 'TokenSingle',
-        //             Token: Token
-        //         },
-        //         Metadata: insurance ? {
-        //             insurancePrice: price.insurancePrice
-        //         } : {}
-        //     })
-        // })
-
-        // const borgunData = await borgunResult.json()
-        // console.log(borgunData)
-    } else if (paypal) {
-
+    const paymentResult = await handlePayment(paymentOptions, insurance)
+    if(!paymentResult.success){
+        return paymentResult
     }
-
+    console.log(paymentResult)
 
     let receipt = {
         cardNumber: '7721',
@@ -269,6 +244,102 @@ async function calculatePrice(tickets, insurance) {
         }
     } else {
         return { totalPrice: ticketsPrice.toFixed(2) }
+    }
+}
+
+
+/**
+ * paymentOptions: {
+ *      method: String ('borgun' || 'paypal')
+ *      Token: String (only if method is borgun)
+ *      orderId: String (only if method is paypal)
+ * }
+ * 
+ */
+async function handlePayment(paymentOptions, insurance) {
+        const price = await calculatePrice(tickets, insurance)
+        if(paymentOptions.method === 'borgun'){
+            return await handleBorgunPayment(price, paymentOptions.Token, insurance)  
+        } else if (paymentOptions.method === 'paypal'){
+            return await handlePaypalPayment(price, paymentOptions.orderId, insurance)
+        } else {
+            return SYSTEM_ERROR
+        }
+}
+
+async function handleBorgunPayment(price, Token, insurance){
+    const orderId = crypto.randomBytes(6).toString('hex').toUpperCase()
+
+    const borgunResult = await fetch('someapihere and private key', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        data: JSON.stringify({
+            TransactionType: 'Sale',
+            Amount: price.totalPrice,
+            Currency: '840', //usd
+            TransactionDate: new Date().toISOString(),
+            OrderId: orderId,
+            PaymentMethod: {
+                PaymentType: 'TokenSingle',
+                Token: Token
+            },
+            Metadata: insurance ? {
+                insurancePrice: price.insurancePrice
+            } : {}
+        })
+    })
+
+    const borgunData = await borgunResult.json()
+}
+
+async function handlePaypalPayment(price, orderId, insurance){
+  // 3. Call PayPal to get the transaction details
+  let request = new checkoutNodeJssdk.orders.OrdersGetRequest(orderId);
+
+  let order
+  try {
+    order = await client().client().execute(request);
+  } catch (err) {
+
+    // 4. Handle any errors from the call
+    console.error(err);
+    return SYSTEM_ERROR
+  }
+
+  // 5. Validate the transaction details are as expected
+  if (order.result.purchase_units[0].amount.value !== price) {
+    return BAD_REQUEST('You did not pay the expected amount')
+  }
+
+  // 6. Save the transaction in your database
+  // await database.saveTransaction(orderID);
+
+  // 7. Return a successful response to the client
+  return order;
+
+}
+
+function client() {
+    return new checkoutNodeJssdk.core.PayPalHttpClient(environment());
+}
+
+/**
+ *
+ * Set up and return PayPal JavaScript SDK environment with PayPal access credentials.
+ * This sample uses SandboxEnvironment. In production, use LiveEnvironment.
+ *
+ */
+function environment() {
+    let clientId = process.env.PAYPAL_CLIENT_ID || 'PAYPAL-SANDBOX-CLIENT-ID';
+    let clientSecret = process.env.PAYPAL_CLIENT_SECRET || 'PAYPAL-SANDBOX-CLIENT-SECRET';
+
+    if(process.env.PRODUCTION){
+        return new checkoutNodeJssdk.core.LiveEnvironment(clientId, clientSecret)
+    } else {
+        return new checkoutNodeJssdk.core.SandboxEnvironment(clientId, clientSecret);
     }
 }
 
