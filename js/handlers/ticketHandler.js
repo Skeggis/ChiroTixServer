@@ -20,7 +20,7 @@ async function getEventInfoWithTicketTypes(eventId) { return await ticketDb.getE
  */
 async function releaseAllTicketsForBuyer({ buyerId = -1, eventId = -1 }) {
     let success = await ticketDb.releaseAllTicketsForBuyer(buyerId, eventId)
-    if (!success) { return SYSTEM_ERROR }
+    if (!success) { return SYSTEM_ERROR() }
     return { success: true }
 }
 
@@ -64,7 +64,7 @@ async function releaseAllTicketsForBuyer({ buyerId = -1, eventId = -1 }) {
  */
 async function reserveTickets({ buyerId = -1, eventId = -1, ticketTypes = [] }) {
     let { success } = await releaseAllTicketsForBuyer({ buyerId, eventId })
-    if (!success) { return SYSTEM_ERROR }
+    if (!success) { return SYSTEM_ERROR() }
 
     let ticketIds = []
     let ticketTypesToBuy = []
@@ -77,7 +77,7 @@ async function reserveTickets({ buyerId = -1, eventId = -1, ticketTypes = [] }) 
 
     if(ticketTypesToBuy.length === 0){return {success: false, messages:[{type:"error", message:"You must buy at least 1 ticket.", title:"No tickets selected"}]}}
     const ticketTypesForEvent = await ticketDb.getTicketTypes(ticketIds)
-    if (!ticketTypes) { return SYSTEM_ERROR }
+    if (!ticketTypes) { return SYSTEM_ERROR() }
 
     let ticketCheckResponse = await checkForAvailableTickets(ticketTypesForEvent, ticketTypesToBuy)
 
@@ -99,7 +99,7 @@ async function reserveTickets({ buyerId = -1, eventId = -1, ticketTypes = [] }) 
  *          }] 
  */
 async function checkForAvailableTickets(ticketTypesForEvent, ticketTypesToBuy) {
-    if (!ticketTypesForEvent[0]) { return SYSTEM_ERROR }
+    if (!ticketTypesForEvent[0]) { return SYSTEM_ERROR() }
 
     let ticketsNotFound = []
     for (let j = 0; j < ticketTypesToBuy.length; j++) {
@@ -153,12 +153,12 @@ async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo 
     //Check if this buyer has reserved the tickets he is trying to buy.
     let reservedTickets = await ticketDb.getAllReservedTicketsForBuyer(buyerId, eventId, tickets)
 
-    if (!reservedTickets) { return SYSTEM_ERROR }
+    if (!reservedTickets) { return SYSTEM_ERROR() }
     if (!(await ticketsReservedMatchBuyerTickets(reservedTickets, tickets))) { return { success: false, messages: [{ type: "error", message: "The tickets you are trying to buy and the tickets reserved for you don't match. Please try again." }] } }
 
     let settings = await settingsDb.getSettings()
     
-    if(!settings){return SYSTEM_ERROR}
+    if(!settings){return SYSTEM_ERROR()}
 
     for(let i = 0; i < tickets.length; i++){
         tickets[i].termsTitle = settings.ticketsTermsTitle

@@ -33,8 +33,20 @@ async function verbose() {
 }
 
 
+async function silenceBefore(){
+  output = '';
+    errorOutput = ''
+    console.log = (msg) => {
+      output += msg + '\n';
+    };
+
+    console.error = (msg) => {
+      errorOutput += msg + '\n'
+    }
+}
+
 async function ordersTableDataFormat(){
   
 }
 
-module.exports = { silence, verbose }
+module.exports = { silence, verbose, silenceBefore }

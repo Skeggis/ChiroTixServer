@@ -7,6 +7,7 @@ const util = require('util');
 const fs = require('fs');
 const readFileAsync = util.promisify(fs.readFile);
 const { DB_CONSTANTS } = require('../helpers')
+const { SYSTEM_ERROR } = require('../Messages')
 
 /**
  * 
@@ -18,7 +19,7 @@ const { DB_CONSTANTS } = require('../helpers')
  * }
  */
 async function insertEventDb(event) {
-
+let message = {success:false}
   const myEvent = {
     name: event.name,
     startdate: event.startDate,
@@ -36,10 +37,11 @@ async function insertEventDb(event) {
     schedule: event.schedule
   }
   let organization = event.organization // [{name: String, id: Integer (if organization exists in db)}]
-  let speakers = event.speakers //[{name:String, id: Integer (iff speaker exists in our db)}]
+  let speakers = event.speakers || [] //[{name:String, id: Integer (iff speaker exists in our db)}]
   let success = false
   let eventId;
   const client = await getClient()
+
   try {
     await client.query('BEGIN')
 
@@ -71,9 +73,9 @@ async function insertEventDb(event) {
     const eventQuery = `INSERT INTO ${DB_CONSTANTS.EVENTS_DB} (name, startdate, enddate, shortdescription, longdescription, image, cityid, longitude, latitude, categoryid,
       startsellingtime, finishsellingtime, cecredits, schedule, organizationid)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8,$9, $10, $11, $12, $13, $14, $15) RETURNING *`
-
+      console.log(eventQuery)
     const eventRes = await client.query(eventQuery, [...Object.values(myEvent), myOrganizationId])
-    const eventR = await formatter.formatEvent(eventRes.rows[0])
+    const eventR = await formatter.formatEventFromEventsTable(eventRes.rows[0])
 
     const ticketValues = []
     for(let i = 0; i < event.tickets.length; i++){
@@ -90,7 +92,7 @@ async function insertEventDb(event) {
       counter += 4
     }
     ticketQuery += ' RETURNING *'
-
+    console.log(ticketQuery)
     await client.query(ticketQuery, ticketValues)
 
     const soldTicketsTable = await readFileAsync('./sql/ticketsSold.sql')
@@ -156,8 +158,9 @@ async function insertEventDb(event) {
       speakersNames.push(speaker.name)
     }
 
-
-    await client.query(connectSpeakersToEventQuery)
+    console.log(connectSpeakersToEventQuery)
+    if(theSpeakers.length > 0){await client.query(connectSpeakersToEventQuery)}
+    
 
 
     //Connect the tags to this Event
@@ -165,7 +168,7 @@ async function insertEventDb(event) {
     //Todo: remove functionality that user can insert whatever tag he wants. Must be in database
     let tagIds = []
     let tags = []
-    if (event.tags.length > 0) {
+    if (event.tags && event.tags.length > 0) {
       let tagsConnectQuery = `insert into ${DB_CONSTANTS.TAGS_CONNECT_DB} (eventid, tagid) values `
       for (let i = 0; i < event.tags.length; i++) {
         if (i != 0) { tagsConnectQuery += "," }
@@ -206,21 +209,25 @@ async function insertEventDb(event) {
                            setweight(to_tsvector('english', city), 'B') ||
                            setweight(to_tsvector('english', array_to_string(tags, ' ')), 'B')
                            ) where id = ${searchTableResult.rows[0].id}`
+
     await client.query(updateQueryForTextSearch)
 
     await client.query('COMMIT')
     success = true
     eventId = eventR.id
+    message = {
+      success: success,
+      id: eventId
+    }
   } catch (e) {
     await client.query('ROLLBACK')
-    throw e
+    console.log("Insert event error:", e)
+    message = SYSTEM_ERROR()
+    message.errorMessage = e + "MAMMA"
   } finally {
     client.end()
   }
-  return {
-    success: success,
-    id: eventId
-  }
+  return message
 }
 
 async function getInsertValuesDb() {

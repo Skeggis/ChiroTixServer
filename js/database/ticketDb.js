@@ -8,7 +8,7 @@ const crypto = require('crypto');
 async function getEventInfoWithTicketTypes(eventId) {
     let query = `select * from ${DB_CONSTANTS.EVENTS_INFO_VIEW} where eventid=${eventId}`
     let result = await db.query(query)
-    if (!result.rows[0]) { return false }
+    if (!result || !result.rows[0]) { return false }
     return await formatter.formatEventInfoView(result.rows)
 }
 /**
@@ -101,7 +101,7 @@ async function buyTickets(eventId, buyerId, tickets, buyerInfo, receipt, insuran
     } catch (e) {
         await client.query('ROLLBACK')
         console.log("BuyTickets error: ", e)
-        message = SYSTEM_ERROR
+        message = SYSTEM_ERROR()
     } finally {
         client.end()
     }
@@ -198,10 +198,11 @@ async function reserveTickets(eventId, buyerId, ticketTypes) {
         delete message.messages
     } catch (e) {
         await client.query('ROLLBACK')
-        console.log("ReserveTickets error: ", e)
-        message = SYSTEM_ERROR
+        console.log("ReserveTickets error: ", JSON.stringify(e))
+        message = SYSTEM_ERROR()
+        // message = {success:false, messages:[{type:"error", message:"FUCKER"}]}
     } finally {
-        client.end()
+        await client.end()
     }
     return message
 }

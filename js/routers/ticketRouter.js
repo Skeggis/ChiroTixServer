@@ -1,3 +1,4 @@
+require('dotenv').config()
 const router = require('express').Router()
 const crypto = require('crypto')
 const ticketHandler = require('../handlers/ticketHandler')
@@ -39,7 +40,7 @@ async function reserveTickets(req, res){
 
     if(!(buyerId && eventId && ticketTypes && socketId)){ return res.json(BAD_REQUEST("Invalid body request.")) }
     if( ticketTypes.length === 0 ){ return res.json(BAD_REQUEST("Invalid amount of tickets. Zero tickets not allowed."))}
-
+console.log("RESERVE:", req.body)
     const data = {
         buyerId,
         eventId,
@@ -47,18 +48,23 @@ async function reserveTickets(req, res){
     }
 
     var response = await ticketHandler.reserveTickets(data)
+    console.log("BEF", response)
     if(!response.success){return res.json(response)}
-
+console.log("Throught,", process.env.TEST)
     let io = req.app.get('io')
     let timer = await calculateTime(response.ownerInfos, response.reservedTickets.length)
     let now = new Date()
     let releaseDate = new Date(now.getTime()+(timer))
-
-    io.sockets.connected[socketId].releaseTime = releaseDate
-    io.sockets.connected[socketId].timer = timer
+console.log("MEST")
+    console.log("DAMN")
+    if(!process.env.TEST){
+        io.sockets.connected[socketId].releaseTime = releaseDate
+        io.sockets.connected[socketId].timer = timer
+    }
+    
     response.timer = timer
     response.releaseTime = releaseDate
-
+console.log("RESPOND")
     res.json(response)
 }
 
