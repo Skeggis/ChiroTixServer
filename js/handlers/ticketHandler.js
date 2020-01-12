@@ -76,8 +76,8 @@ async function reserveTickets({ buyerId = -1, eventId = -1, ticketTypes = [] }) 
     }
 
     if(ticketTypesToBuy.length === 0){return {success: false, messages:[{type:"error", message:"You must buy at least 1 ticket.", title:"No tickets selected"}]}}
-    const ticketTypesForEvent = await ticketDb.getTicketTypes(ticketIds)
-    if (!ticketTypes) { return SYSTEM_ERROR() }
+    const ticketTypesForEvent = await ticketDb.getTicketTypes(ticketIds, eventId)
+    if (!ticketTypesForEvent) { return SYSTEM_ERROR() }
 
     let ticketCheckResponse = await checkForAvailableTickets(ticketTypesForEvent, ticketTypesToBuy)
 
@@ -119,7 +119,7 @@ async function checkForAvailableTickets(ticketTypesForEvent, ticketTypesToBuy) {
             ticketsNotFound.push({
                 ticketTypeId: ticketTypeToBuy.ticketTypeId,
                 type: "error",
-                message: (ticketsLeft <= 10 ? `There ${ticketsLeft > 1 ? `are only ${ticketsLeft} `:ticketsLeft===1 ? `is only 1 `:`are no`} ` : `There are fewer than ${ticket.amount} `) + `${ticketsLeft === 1 ? 'ticket':'tickets'} left of type: ${ticketType.name}.\n`
+                message: (ticketsLeft <= 10 ? `There ${ticketsLeft > 1 ? `are only ${ticketsLeft} `:ticketsLeft===1 ? `is only 1 `:`are no`} ` : `There are fewer than ${ticketType.amount} `) + `${ticketsLeft === 1 ? 'ticket':'tickets'} left of type: ${ticketType.name}.\n`
             })
         }
     }
@@ -145,7 +145,7 @@ async function checkForAvailableTickets(ticketTypesForEvent, ticketTypesToBuy) {
  *                      SSN: String (?)
  *                  }    
  */
-async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo = {}, insurance = null, insurancePrice = 0, ticketTypes = {} }) {
+async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo = {}, insurance = null, insurancePrice = 0 }) {
     let isBuying = await ticketDb.isBuying(eventId, buyerId)
 
     if(isBuying){return {success:false, messages:[{type:"error", message:"We are processing your payment. Please wait a few moments."}]}}
@@ -185,13 +185,16 @@ async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo 
     if (createPDFResponse.success) { pdfBuffer = createPDFResponse.buffer }
 
     const orderId = buyingTicketsResponse.orderDetails.orderId
-    await sendReceiptMail(
-        `${WEBSITE_URL}/orders/${orderId}`,
-        'noreply@chirotix.com',
-        buyingTicketsResponse.orderDetails.buyerInfo.email,
-        'ChiroTix order',
-        pdfBuffer
-    )
+    if(!process.env.TEST){
+        console.log("SENDINGEMAIL!!!!")
+        await sendReceiptMail(
+            `${WEBSITE_URL}/orders/${orderId}`,
+            'noreply@chirotix.com',
+            buyingTicketsResponse.orderDetails.buyerInfo.email,
+            'ChiroTix order',
+            pdfBuffer
+        )
+    }
 
     ticketDb.doneBuying(eventId, buyerId)//Change isBuying from true to false.
 

@@ -129,8 +129,8 @@ async function getAllReservedTicketsForBuyer(buyerId, eventId) {
 /**
  * @param {Array} ticketTypeIds : [Integer]
  */
-async function getTicketTypes(ticketTypeIds) {
-    let query = `select * from ${DB_CONSTANTS.TICKETS_TYPE_DB} where id=Any('{${ticketTypeIds.toString()}}')`
+async function getTicketTypes(ticketTypeIds, eventId) {
+    let query = `select * from ${DB_CONSTANTS.TICKETS_TYPE_DB} where id=Any('{${ticketTypeIds.toString()}}') and eventid=${eventId}`
     let ticketTypes = await db.query(query)
     if (!ticketTypes || ticketTypes.rows.length === 0) { return false }
     return await formatter.formatTicketTypes(ticketTypes.rows)
@@ -161,7 +161,7 @@ async function reserveTickets(eventId, buyerId, ticketTypes) {
 
         for (let j = 0; j < ticketTypes.length; j++) {
             let ticketType = ticketTypes[j]
-            let q = `update ${DB_CONSTANTS.TICKETS_TYPE_DB} set reserved = reserved + ${ticketType.amount} where id=${ticketType.id} and amount >= reserved+sold+${ticketType.amount} returning *`
+            let q = `update ${DB_CONSTANTS.TICKETS_TYPE_DB} set reserved = reserved + ${ticketType.amount} where id=${ticketType.id} and amount >= reserved+sold+${ticketType.amount} and eventid=${eventId} returning *`
             let qResult = await client.query(q)
             if(!qResult || !qResult.rows[0]){
                 await client.query('ROLLBACK')
