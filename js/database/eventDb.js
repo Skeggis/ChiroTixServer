@@ -286,7 +286,6 @@ async function getEventByIdDb(id){
 }
 
 
-
 module.exports = {
   insertEventDb,
   getEventByIdDb,

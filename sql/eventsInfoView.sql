@@ -21,7 +21,7 @@ CREATE OR replace view eventsinfo AS
     tickets.ownerinfo AS ownerinfo
 
 FROM events
-    INNER JOIN tickets ON tickets.eventid=events.id
+    INNER JOIN tickets ON tickets.eventid=events.id and not tickets.disabled
     INNER JOIN cities ON events.cityid = cities.id
     INNER JOIN countries ON cities.countryid = countries.id
     INNER JOIN organizations ON organizations.id = events.organizationid;

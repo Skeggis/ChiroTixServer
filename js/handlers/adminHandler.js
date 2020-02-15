@@ -1,25 +1,32 @@
-const { getTicketTypesOfEvent, getAllTicketsSoldIn } = require('../database/ticketDb')
-const { search } = require('../database/searchDb')
-const { getEventByIdDb } = require('../database/eventDb')
+const ticketDb = require('../database/ticketDb')
+const searchDb = require('../database/searchDb')
+const eventDb = require('../database/eventDb')
 const formatter = require('../formatter')
 const xlsx = require('xlsx')
 
+async function changeTicketState(ticketTypeId){
+    let ticket = await ticketDb.changeTicketState(ticketTypeId)
+    if(!ticket){return null}
+    return await formatter.formatTicketType(ticket)
+}
+
 async function getEventsInfoWithTicketTypes() {
-    let eventsInfo = await search()
-    if (!eventsInfo) { return null }
+    let eventsMessage = await searchDb.getAllSearchableEvents()
+    if (!eventsMessage || !eventsMessage.success) { return null }
     let events = []
-    for (let i = 0; i < eventsInfo.length; i++) {
+    for (let i = 0; i < eventsMessage.events.length; i++) {
+        let eventInfo = eventsMessage.events[i]
         events.push({
-            eventInfo: eventsInfo[i],
-            ticketTypes: await getTicketTypesOfEvent(eventsInfo[i].id)
+            eventInfo: eventInfo,
+            ticketTypes: await ticketDb.getTicketTypesOfEvent(eventInfo.id)
         })
     }
     return events
 }
 
 async function getTicketsXLSheetFor(id) {
-    let event = await getEventByIdDb(id)
-    let ticketsJSON = await getAllTicketsSoldIn(event.eventInfo.ticketsTableName)
+    let event = await eventDb.getEventByIdDb(id)
+    let ticketsJSON = await ticketDb.getAllTicketsSoldIn(event.eventInfo.ticketsTableName)
     if (!ticketsJSON) { return null }
     let xlJSON = await formatter.formatTicketsForCustomer(ticketsJSON)
 // console.log(xlJSON)
@@ -35,4 +42,4 @@ async function getTicketsXLSheetFor(id) {
     return {buffer:buf, success:true}
 }
 
-module.exports = { getEventsInfoWithTicketTypes, getTicketsXLSheetFor }
+module.exports = { getEventsInfoWithTicketTypes, getTicketsXLSheetFor, changeTicketState }

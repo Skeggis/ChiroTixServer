@@ -44,7 +44,8 @@ async function formatTicketType(ticket){
         amount: ticket.amount,
         sold: ticket.sold,
         reserved: ticket.reserved,
-        date: ticket.date
+        date: ticket.date,
+        disabled: ticket.disabled
     }
 }
 
@@ -164,7 +165,7 @@ function getDateRange(startDate, endDate){
     return `${start.getDate()}.${start.getMonth()+1}.${start.getFullYear()%100} - ${end.getDate()}.${end.getMonth()+1}.${end.getFullYear()%100}`
 }
 
-function formatSearchEvent(event){
+async function formatSearchEvent(event){
     return {
         id: event.eventid,
         name: event.name,
@@ -199,9 +200,12 @@ function formatSearchEvent(event){
     }
 }
 
-function formatSearchEvents(events){
+async function formatSearchEvents(events){
     let newEvents = []
-    events.map(event => newEvents.push(formatSearchEvent(event)))
+    for(let i = 0; i < events.length; i++){
+        let event = events[i]
+        newEvents.push(await formatSearchEvent(event))
+    }
     return newEvents
 }
 

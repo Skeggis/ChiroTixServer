@@ -339,9 +339,10 @@ async function doneBuying(eventId, buyerId) {
         let query = `Select * from ${DB_CONSTANTS.EVENTS_DB} where id=${eventId}`
         const eventInfo = await client.query(query)
         const eventTicketsTable = eventInfo.rows[0].ticketstablename
-
+        console.log(`update ${eventTicketsTable} set isbuying=false where isbuying=true and buyerid = '${buyerId}'`)
         await client.query(`update ${eventTicketsTable} set isbuying=false where isbuying=true and buyerid = '${buyerId}'`)
         await client.query('COMMIT')
+
     } catch (e) {
         console.log(e)
     } finally {
@@ -364,7 +365,7 @@ async function getTicketsPrice(tickets) {
 
         for (let i = 0; i < tickets.length; i++) {
             const result = await client.query(`select price from ${TICKETS_TYPE_DB} where id = $1`, [tickets[i].id])
-            price += result.rows[0].price
+            price += parseFloat(result.rows[0].price)
         }
 
         await client.query('COMMIT')
@@ -381,10 +382,16 @@ async function getInsurancePercentage() {
     return result.rows[0].insurancepercentage
 }
 
+async function changeTicketState(ticketTypeId){
+    const result = await db.query(`update ${DB_CONSTANTS.TICKETS_TYPE_DB} set disabled = not disabled where id = ${ticketTypeId} returning *`)
+    return result.rows[0]
+}
+
 
 
 module.exports = {
     getTicketTypes, reserveTickets, buyTickets, getAllReservedTicketsForBuyer,
     releaseAllTicketsForBuyer, getEventInfoWithTicketTypes, isBuying, doneBuying,
-    getTicketTypesOfEvent, getAllTicketsSoldIn, getTicketsPrice, getInsurancePercentage
+    getTicketTypesOfEvent, getAllTicketsSoldIn, getTicketsPrice, getInsurancePercentage,
+    changeTicketState
 }

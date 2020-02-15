@@ -43,7 +43,7 @@ describe('#ticketDb.js', async function () {
         it('should return the event information and ticket types available to buy for the correct event', async function () {
             let event = await ticketDb.getEventInfoWithTicketTypes(eventId)
 
-            expect(event).to.have.keys(['eventInfo', 'ticketTypes'])
+            expect(event).to.have.keys(['eventInfo', 'ticketTypes', 'insurancePercentage'])
             expect(event.eventInfo.id).to.be.equal(eventId)
 
             eventInfo = event.eventInfo
@@ -141,7 +141,7 @@ describe('#ticketDb.js', async function () {
             let ids = []
             for (let i = 0; i < ticketTypes.length; i++) { ids.push(ticketTypes[i].id) }
 
-            let types = await ticketDb.getTicketTypes(ids)
+            let types = await ticketDb.getTicketTypes(ids, eventId)
 
             expect(types).to.have.lengthOf(ticketTypes.length)
         })
@@ -149,7 +149,7 @@ describe('#ticketDb.js', async function () {
         it('should fail to get the ticketTypes for the event because the ids are invalid', async function () {
             let ids = ["matur", ticketTypes[0].id]
 
-            let types = await ticketDb.getTicketTypes(ids)
+            let types = await ticketDb.getTicketTypes(ids, eventId)
 
             expect(types).to.be.false
         })
@@ -157,7 +157,7 @@ describe('#ticketDb.js', async function () {
         it('should fail to get the ticketTypes for the event because there are no tickets with the ids given', async function () {
             let ids = [-1, -3]
 
-            let types = await ticketDb.getTicketTypes(ids)
+            let types = await ticketDb.getTicketTypes(ids, eventId)
 
             expect(types).to.be.false
         })

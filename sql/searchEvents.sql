@@ -13,6 +13,7 @@ create table searchevents (
     cityid integer references cities(id),
     startdate TIMESTAMPtz,
     enddate timestamptz,
+    
     minprice numeric(15,6),
     maxprice numeric(15,6),
     tagsids integer[],
