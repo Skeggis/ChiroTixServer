@@ -109,7 +109,8 @@ async function formatEventInfoView(rows){
         latitude: rows[0].latitude,
         longitude: rows[0].longitude,
         CECredits: rows[0].cecredits,
-        ticketsTableName: rows[0].ticketstablename
+        ticketsTableName: rows[0].ticketstablename,
+        insurancePercentage: rows[0].insurancepercentage
     }
 
     let {dates, newSchedule} = await formatSchedule(rows[0].schedule)

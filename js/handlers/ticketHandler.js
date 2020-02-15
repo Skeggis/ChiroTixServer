@@ -8,7 +8,8 @@ const {
 } = require('../handlers/emailHandler')
 const { createTicketsPDF } = require('../createPDFHTML/createPDF')
 
-
+const checkoutNodeJssdk = require('@paypal/checkout-server-sdk');
+const paypalClient = require('../paypalEnvironment')
 
 
 
@@ -171,7 +172,7 @@ async function checkForAvailableTickets(ticketTypesForEvent, ticketTypesToBuy) {
 //     "termsTitle":"Tickets Terms",
 //     "orderId": "109238"
 // }
-async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo = {}, insurance = null, insurancePrice = 0, ticketTypes = {}, socketId = -1, workQueue = null }) {
+async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo = {}, insurance = null, insurancePrice = 0, ticketTypes = {}, socketId = -1, workQueue = null, paymentOptions = {} }) {
     let isBuying = await ticketDb.isBuying(eventId, buyerId)
 
     if (isBuying) { return { success: false, messages: [{ type: "error", message: "We are processing your payment. Please wait a few moments." }] } }
@@ -189,6 +190,10 @@ async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo 
     for (let i = 0; i < tickets.length; i++) {
         tickets[i].termsTitle = settings.ticketsTermsTitle
         tickets[i].termsText = settings.ticketsTermsText
+    }
+
+    if (paymentOptions.method === 'paypal') {
+        verifyPaypalTransaction(paymentOptions.orderId)
     }
 
     let receipt = {
@@ -211,13 +216,41 @@ async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo 
         buyerInfo,
         receipt,
         insurance,
-        insurancePrice
+        insurancePrice,
+        paymentOptions
     }
     const job = await workQueue.add(data)
 
     return job.id
 }
 
+
+async function verifyPaypalTransaction(orderId) {
+
+    // 3. Call PayPal to get the transaction details
+    let request = new checkoutNodeJssdk.orders.OrdersGetRequest(orderId);
+  
+    let order;
+    try {
+      order = await paypalClient.client().execute(request);
+    } catch (err) {
+  
+      // 4. Handle any errors from the call
+      console.error(err);
+      return false
+    }
+    console.log('PaypalOrder',order)
+    // 5. Validate the transaction details are as expected
+    if (order.result.purchase_units[0].amount.value !== '220.00') {
+      return false
+    }
+  
+    // 6. Save the transaction in your database
+    // await database.saveTransaction(orderID);
+  
+    // 7. Return a successful response to the client
+    return true
+}
 
 
 /**

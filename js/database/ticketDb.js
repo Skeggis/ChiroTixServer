@@ -9,6 +9,7 @@ async function getEventInfoWithTicketTypes(eventId) {
     let query = `select * from ${DB_CONSTANTS.EVENTS_INFO_VIEW} where eventid=${eventId}`
     let result = await db.query(query)
     if (!result.rows[0]) { return false }
+    console.log(result.rows)
     return await formatter.formatEventInfoView(result.rows)
 }
 /**

@@ -109,9 +109,9 @@ async function main() {
     await query(speakers.toString('utf8'));
     await query(speakersConnect.toString('utf8'));
     await query(searchEvents.toString('utf8'))
+    await query(chiroTixSettings.toString('utf8'))
     await query(eventsInfoView.toString('utf8'))
     await query(orders.toString('utf8'))
-    await query(chiroTixSettings.toString('utf8'))
     await query(users.toString('utf-8'))
 
     await query(`CREATE INDEX textsearch_idx ON ${SEARCH_EVENTS_DB} USING GIN (textsearchable_index_col);`)
