@@ -6,11 +6,8 @@ const { BAD_REQUEST } = require('../Messages')
 
 const { catchErrors } = require('../helpers')
 
-<<<<<<< HEAD
-=======
 
 
->>>>>>> development
 async function eventInfo(req, res) {
     let eventId = req.params.eventId
     if (!eventId) { return res.json(BAD_REQUEST("Invalid body request.")) }
@@ -53,25 +50,17 @@ async function reserveTickets(req, res) {
     }
 
     var response = await ticketHandler.reserveTickets(data)
-<<<<<<< HEAD
-    
-
-=======
->>>>>>> development
     if (!response.success) { return res.json(response) }
 
     let io = req.app.get('io')
     let timer = await calculateTime(response.reservedTickets)
     let now = new Date()
     let releaseDate = new Date(now.getTime() + (timer))
-<<<<<<< HEAD
 
     if(io && io.sockets.connected[socketId] && !process.env.TEST){
         io.sockets.connected[socketId].releaseTime = releaseDate
         io.sockets.connected[socketId].timer = timer
     }
-=======
->>>>>>> development
 
     response.timer = timer
     response.releaseTime = releaseDate
@@ -105,7 +94,12 @@ async function calculateTime(tickets) {
  *                      email: String,
  *                      SSN: String (?)
  *                  },
- *                  cardInformaition: {?}
+ *                  paymentOptions: {
+ *                      method: String ('borgun' || 'paypal')
+ *                      Token: String (only if method is borgun)
+ *                      orderId: String (only if method is paypal)
+ *                  },
+ *                  insurance: boolean
  * } 
  */
 async function buyTickets(req, res) {
@@ -115,18 +109,15 @@ async function buyTickets(req, res) {
             eventId = false,
             tickets = false,
             buyerInfo = false,
-            cardInformation = false,
             insurance = false,
             insurancePrice = 0,//TODO: should not depend on client to send the insurance price, or yes you should depend on the client but also confirm it on the server
-            socketId = false
+            ticketTypes = false,
+            socketId = false,
+            paymentOptions = false
         }
     } = req
 
-<<<<<<< HEAD
     if (!(buyerId && eventId && tickets && buyerInfo && socketId)) { return res.json(BAD_REQUEST("Invalid body request.")) }
-=======
-    if (!(buyerId && eventId && tickets && buyerInfo)) { return res.json(BAD_REQUEST("Invalid body request.")) }
->>>>>>> development
     if (tickets.length === 0) { return res.json(BAD_REQUEST("Invalid amount of tickets. Zero tickets not allowed.")) }
 
     const workQueue = req.app.get('workQueue')
@@ -136,14 +127,11 @@ async function buyTickets(req, res) {
         tickets,
         buyerInfo,
         insurance,
-<<<<<<< HEAD
-        insurancePrice
-=======
         insurancePrice,
         ticketTypes,
+        paymentOptions,
         socketId,
         workQueue
->>>>>>> development
     }
 
     var response = await ticketHandler.buyTickets(data)
@@ -151,11 +139,7 @@ async function buyTickets(req, res) {
 
     if (response.success) {
         let io = req.app.get('io')
-<<<<<<< HEAD
         if (io && io.sockets.connected[socketId] && !process.env.TEST) { clearTimeout(io.sockets.connected[socketId].timeOut) }
-=======
-        if (io.sockets.connected[socketId]) { clearTimeout(io.sockets.connected[socketId].timeOut) }
->>>>>>> development
     }
 }
 
@@ -178,10 +162,6 @@ async function releaseTickets(req, res) {
     } = req
 
     if (!(buyerId && eventId)) { return res.json(BAD_REQUEST("Invalid body request.")) }
-<<<<<<< HEAD
-=======
-    if (tickets.length === 0) { return res.json(BAD_REQUEST("Invalid amount of tickets. Zero tickets not allowed.")) }
->>>>>>> development
 
     const data = {
         buyerId,
@@ -192,11 +172,7 @@ async function releaseTickets(req, res) {
 
     if (response.success) {
         let io = req.app.get('io')
-<<<<<<< HEAD
         if (io && io.sockets.connected[socketId] && !process.env.TEST) { clearTimeout(io.sockets.connected[socketId].timeOut) }
-=======
-        if (io.sockets.connected[socketId]) { clearTimeout(io.sockets.connected[socketId].timeOut) }
->>>>>>> development
     }
     res.json(response)
 }

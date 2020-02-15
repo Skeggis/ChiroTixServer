@@ -2,11 +2,14 @@ require('dotenv').config()
 const { HOST } = require('../helpers')
 const ticketDb = require('../database/ticketDb')
 const settingsDb = require('../database/settingsDb')
-const { SYSTEM_ERROR } = require('../Messages')
+const { SYSTEM_ERROR, BAD_REQUEST } = require('../Messages')
 const {
     sendReceiptMail
 } = require('../handlers/emailHandler')
 const { createTicketsPDF } = require('../createPDFHTML/createPDF')
+const crypto = require('crypto')
+const checkoutNodeJssdk = require('@paypal/checkout-server-sdk');
+
 
 
 
@@ -76,15 +79,9 @@ async function reserveTickets({ buyerId = -1, eventId = -1, ticketTypes = [] }) 
         }
     }
 
-<<<<<<< HEAD
     if(ticketTypesToBuy.length === 0){return {success: false, messages:[{type:"error", message:"You must buy at least 1 ticket.", title:"No tickets selected"}]}}
     const ticketTypesForEvent = await ticketDb.getTicketTypes(ticketIds, eventId)
     if (!ticketTypesForEvent) { return SYSTEM_ERROR() }
-=======
-    if (ticketTypesToBuy.length === 0) { return { success: false, messages: [{ type: "error", message: "You must buy at least 1 ticket.", title: "No tickets selected" }] } }
-    const ticketTypesForEvent = await ticketDb.getTicketTypes(ticketIds)
-    if (!ticketTypes) { return SYSTEM_ERROR }
->>>>>>> development
 
     let ticketCheckResponse = await checkForAvailableTickets(ticketTypesForEvent, ticketTypesToBuy)
 
@@ -126,11 +123,7 @@ async function checkForAvailableTickets(ticketTypesForEvent, ticketTypesToBuy) {
             ticketsNotFound.push({
                 ticketTypeId: ticketTypeToBuy.ticketTypeId,
                 type: "error",
-<<<<<<< HEAD
                 message: (ticketsLeft <= 10 ? `There ${ticketsLeft > 1 ? `are only ${ticketsLeft} `:ticketsLeft===1 ? `is only 1 `:`are no`} ` : `There are fewer than ${ticketType.amount} `) + `${ticketsLeft === 1 ? 'ticket':'tickets'} left of type: ${ticketType.name}.\n`
-=======
-                message: (ticketsLeft <= 10 ? `There ${ticketsLeft > 1 ? `are only ${ticketsLeft} ` : ticketsLeft === 1 ? `is only 1 ` : `are no`} ` : `There are fewer than ${ticket.amount} `) + `${ticketsLeft === 1 ? 'ticket' : 'tickets'} left of type: ${ticketType.name}.\n`
->>>>>>> development
             })
         }
     }
@@ -156,9 +149,7 @@ async function checkForAvailableTickets(ticketTypesForEvent, ticketTypesToBuy) {
  *                      SSN: String (?)
  *                  }    
  */
-<<<<<<< HEAD
-async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo = {}, insurance = null, insurancePrice = 0 }) {
-=======
+
 // {
 //     "name":"ChiroPraktik 101",
 //     "country":"Germany",
@@ -186,7 +177,6 @@ async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo 
 //     "orderId": "109238"
 // }
 async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo = {}, insurance = null, insurancePrice = 0, ticketTypes = {}, socketId = -1, workQueue = null }) {
->>>>>>> development
     let isBuying = await ticketDb.isBuying(eventId, buyerId)
 
     if (isBuying) { return { success: false, messages: [{ type: "error", message: "We are processing your payment. Please wait a few moments." }] } }
@@ -198,18 +188,19 @@ async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo 
     if (!(await ticketsReservedMatchBuyerTickets(reservedTickets, tickets))) { return { success: false, messages: [{ type: "error", message: "The tickets you are trying to buy and the tickets reserved for you don't match. Please try again." }] } }
 
     let settings = await settingsDb.getSettings()
-<<<<<<< HEAD
     
     if(!settings){return SYSTEM_ERROR()}
-=======
->>>>>>> development
-
-    if (!settings) { return SYSTEM_ERROR }
 
     for (let i = 0; i < tickets.length; i++) {
         tickets[i].termsTitle = settings.ticketsTermsTitle
         tickets[i].termsText = settings.ticketsTermsText
     }
+
+    const paymentResult = await handlePayment(paymentOptions, insurance)
+    if(!paymentResult.success){
+        return paymentResult
+    }
+    console.log(paymentResult)
 
     let receipt = {
         cardNumber: '7721',
@@ -222,6 +213,14 @@ async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo 
         lines: ticketTypes
     } //Get from Borgun/Paypal. TODO: Paypal/Borgun
 
+    const buyingTicketsResponse = await ticketDb.buyTickets(eventId, buyerId, tickets, buyerInfo, receipt, insurance)
+
+    if (!buyingTicketsResponse.success) { return buyingTicketsResponse }
+
+    let createPDFResponse = await createTicketsPDF({ eventInfo: buyingTicketsResponse.eventInfo, tickets: buyingTicketsResponse.boughtTickets })
+    let pdfBuffer;//TODO: handle if pdf creation fails.
+    if (createPDFResponse.success) { pdfBuffer = createPDFResponse.buffer }
+  
     //Worker test
     const data = {
         socketId,
@@ -235,7 +234,6 @@ async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo 
     }
     const job = await workQueue.add(data)
 
-<<<<<<< HEAD
     const orderId = buyingTicketsResponse.orderDetails.orderId
     if(!process.env.TEST){
         console.log("SENDINGEMAIL!!!!")
@@ -247,12 +245,121 @@ async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo 
             pdfBuffer
         )
     }
-=======
     return job.id
 }
->>>>>>> development
 
 
+
+async function calculatePrice(tickets, insurance) {
+    const ticketsPrice = await ticketDb.getTicketsPrice(tickets)
+
+    if (insurance) {
+        const percentage = await ticketDb.getInsurancePercentage()
+        const insurancePrice = (percentage * ticketsPrice).toFixed(2)
+        return {
+            totalPrice: (insurancePrice + ticketsPrice).toFixed(2),
+            insurancePrice
+        }
+    } else {
+        return { totalPrice: ticketsPrice.toFixed(2) }
+    }
+}
+
+
+/**
+ * paymentOptions: {
+ *      method: String ('borgun' || 'paypal')
+ *      Token: String (only if method is borgun)
+ *      orderId: String (only if method is paypal)
+ * }
+ * 
+ */
+async function handlePayment(paymentOptions, insurance) {
+        const price = await calculatePrice(tickets, insurance)
+        if(paymentOptions.method === 'borgun'){
+            return await handleBorgunPayment(price, paymentOptions.Token, insurance)  
+        } else if (paymentOptions.method === 'paypal'){
+            return await handlePaypalPayment(price, paymentOptions.orderId, insurance)
+        } else {
+            return SYSTEM_ERROR
+        }
+}
+
+async function handleBorgunPayment(price, Token, insurance){
+    const orderId = crypto.randomBytes(6).toString('hex').toUpperCase()
+
+    const borgunResult = await fetch('someapihere and private key', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        data: JSON.stringify({
+            TransactionType: 'Sale',
+            Amount: price.totalPrice,
+            Currency: '840', //usd
+            TransactionDate: new Date().toISOString(),
+            OrderId: orderId,
+            PaymentMethod: {
+                PaymentType: 'TokenSingle',
+                Token: Token
+            },
+            Metadata: insurance ? {
+                insurancePrice: price.insurancePrice
+            } : {}
+        })
+    })
+
+    const borgunData = await borgunResult.json()
+}
+
+async function handlePaypalPayment(price, orderId, insurance){
+  // 3. Call PayPal to get the transaction details
+  let request = new checkoutNodeJssdk.orders.OrdersGetRequest(orderId);
+
+  let order
+  try {
+    order = await client().client().execute(request);
+  } catch (err) {
+
+    // 4. Handle any errors from the call
+    console.error(err);
+    return SYSTEM_ERROR
+  }
+
+  // 5. Validate the transaction details are as expected
+  if (order.result.purchase_units[0].amount.value !== price) {
+    return BAD_REQUEST('You did not pay the expected amount')
+  }
+
+  // 6. Save the transaction in your database
+  // await database.saveTransaction(orderID);
+
+  // 7. Return a successful response to the client
+  return order;
+
+}
+
+function client() {
+    return new checkoutNodeJssdk.core.PayPalHttpClient(environment());
+}
+
+/**
+ *
+ * Set up and return PayPal JavaScript SDK environment with PayPal access credentials.
+ * This sample uses SandboxEnvironment. In production, use LiveEnvironment.
+ *
+ */
+function environment() {
+    let clientId = process.env.PAYPAL_CLIENT_ID || 'PAYPAL-SANDBOX-CLIENT-ID';
+    let clientSecret = process.env.PAYPAL_CLIENT_SECRET || 'PAYPAL-SANDBOX-CLIENT-SECRET';
+
+    if(process.env.PRODUCTION){
+        return new checkoutNodeJssdk.core.LiveEnvironment(clientId, clientSecret)
+    } else {
+        return new checkoutNodeJssdk.core.SandboxEnvironment(clientId, clientSecret);
+    }
+}
 
 /**
  * 

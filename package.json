@@ -25,6 +25,7 @@
   },
   "homepage": "https://github.com/Skeggis/ChiroTixServer#readme",
   "dependencies": {
+    "@paypal/checkout-server-sdk": "^1.0.2",
     "bcryptjs": "^2.4.3",
     "bull": "^3.12.1",
     "cloudinary": "^1.18.1",
