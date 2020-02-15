@@ -1,5 +1,5 @@
 require('dotenv').config()
-const {HOST} = require('../helpers')
+const { HOST } = require('../helpers')
 const ticketDb = require('../database/ticketDb')
 const settingsDb = require('../database/settingsDb')
 const { SYSTEM_ERROR } = require('../Messages')
@@ -8,7 +8,8 @@ const {
 } = require('../handlers/emailHandler')
 const { createTicketsPDF } = require('../createPDFHTML/createPDF')
 
-const WEBSITE_URL = process.env.WEBSITE_URL
+
+
 
 
 
@@ -75,7 +76,7 @@ async function reserveTickets({ buyerId = -1, eventId = -1, ticketTypes = [] }) 
         }
     }
 
-    if(ticketTypesToBuy.length === 0){return {success: false, messages:[{type:"error", message:"You must buy at least 1 ticket.", title:"No tickets selected"}]}}
+    if (ticketTypesToBuy.length === 0) { return { success: false, messages: [{ type: "error", message: "You must buy at least 1 ticket.", title: "No tickets selected" }] } }
     const ticketTypesForEvent = await ticketDb.getTicketTypes(ticketIds)
     if (!ticketTypes) { return SYSTEM_ERROR }
 
@@ -119,7 +120,7 @@ async function checkForAvailableTickets(ticketTypesForEvent, ticketTypesToBuy) {
             ticketsNotFound.push({
                 ticketTypeId: ticketTypeToBuy.ticketTypeId,
                 type: "error",
-                message: (ticketsLeft <= 10 ? `There ${ticketsLeft > 1 ? `are only ${ticketsLeft} `:ticketsLeft===1 ? `is only 1 `:`are no`} ` : `There are fewer than ${ticket.amount} `) + `${ticketsLeft === 1 ? 'ticket':'tickets'} left of type: ${ticketType.name}.\n`
+                message: (ticketsLeft <= 10 ? `There ${ticketsLeft > 1 ? `are only ${ticketsLeft} ` : ticketsLeft === 1 ? `is only 1 ` : `are no`} ` : `There are fewer than ${ticket.amount} `) + `${ticketsLeft === 1 ? 'ticket' : 'tickets'} left of type: ${ticketType.name}.\n`
             })
         }
     }
@@ -170,10 +171,10 @@ async function checkForAvailableTickets(ticketTypesForEvent, ticketTypesToBuy) {
 //     "termsTitle":"Tickets Terms",
 //     "orderId": "109238"
 // }
-async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo = {}, insurance = null, insurancePrice = 0, ticketTypes = {} }) {
+async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo = {}, insurance = null, insurancePrice = 0, ticketTypes = {}, socketId = -1, workQueue = null }) {
     let isBuying = await ticketDb.isBuying(eventId, buyerId)
 
-    if(isBuying){return {success:false, messages:[{type:"error", message:"We are processing your payment. Please wait a few moments."}]}}
+    if (isBuying) { return { success: false, messages: [{ type: "error", message: "We are processing your payment. Please wait a few moments." }] } }
 
     //Check if this buyer has reserved the tickets he is trying to buy.
     let reservedTickets = await ticketDb.getAllReservedTicketsForBuyer(buyerId, eventId, tickets)
@@ -182,10 +183,10 @@ async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo 
     if (!(await ticketsReservedMatchBuyerTickets(reservedTickets, tickets))) { return { success: false, messages: [{ type: "error", message: "The tickets you are trying to buy and the tickets reserved for you don't match. Please try again." }] } }
 
     let settings = await settingsDb.getSettings()
-    
-    if(!settings){return SYSTEM_ERROR}
 
-    for(let i = 0; i < tickets.length; i++){
+    if (!settings) { return SYSTEM_ERROR }
+
+    for (let i = 0; i < tickets.length; i++) {
         tickets[i].termsTitle = settings.ticketsTermsTitle
         tickets[i].termsText = settings.ticketsTermsText
     }
@@ -201,27 +202,23 @@ async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo 
         lines: ticketTypes
     } //Get from Borgun/Paypal. TODO: Paypal/Borgun
 
-    const buyingTicketsResponse = await ticketDb.buyTickets(eventId, buyerId, tickets, buyerInfo, receipt, insurance, insurancePrice)
+    //Worker test
+    const data = {
+        socketId,
+        eventId,
+        buyerId,
+        tickets,
+        buyerInfo,
+        receipt,
+        insurance,
+        insurancePrice
+    }
+    const job = await workQueue.add(data)
 
-    if (!buyingTicketsResponse.success) { return buyingTicketsResponse }
-
-    let createPDFResponse = await createTicketsPDF({ eventInfo: buyingTicketsResponse.eventInfo, tickets: buyingTicketsResponse.boughtTickets })
-    let pdfBuffer;//TODO: handle if pdf creation fails.
-    if (createPDFResponse.success) { pdfBuffer = createPDFResponse.buffer }
-
-    const orderId = buyingTicketsResponse.orderDetails.orderId
-    await sendReceiptMail(
-        `${WEBSITE_URL}/orders/${orderId}`,
-        'noreply@chirotix.com',
-        buyingTicketsResponse.orderDetails.buyerInfo.email,
-        'ChiroTix order',
-        pdfBuffer
-    )
-
-    ticketDb.doneBuying(eventId, buyerId)//Change isBuying from true to false.
-
-    return buyingTicketsResponse
+    return job.id
 }
+
+
 
 /**
  * 
