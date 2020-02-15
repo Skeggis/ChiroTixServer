@@ -20,7 +20,7 @@ async function getEventInfoWithTicketTypes(eventId) { return await ticketDb.getE
  */
 async function releaseAllTicketsForBuyer({ buyerId = -1, eventId = -1 }) {
     let success = await ticketDb.releaseAllTicketsForBuyer(buyerId, eventId)
-    if (!success) { return SYSTEM_ERROR }
+    if (!success) { return SYSTEM_ERROR() }
     return { success: true }
 }
 
@@ -64,7 +64,7 @@ async function releaseAllTicketsForBuyer({ buyerId = -1, eventId = -1 }) {
  */
 async function reserveTickets({ buyerId = -1, eventId = -1, ticketTypes = [] }) {
     let { success } = await releaseAllTicketsForBuyer({ buyerId, eventId })
-    if (!success) { return SYSTEM_ERROR }
+    if (!success) { return SYSTEM_ERROR() }
 
     let ticketIds = []
     let ticketTypesToBuy = []
@@ -76,8 +76,8 @@ async function reserveTickets({ buyerId = -1, eventId = -1, ticketTypes = [] }) 
     }
 
     if(ticketTypesToBuy.length === 0){return {success: false, messages:[{type:"error", message:"You must buy at least 1 ticket.", title:"No tickets selected"}]}}
-    const ticketTypesForEvent = await ticketDb.getTicketTypes(ticketIds)
-    if (!ticketTypes) { return SYSTEM_ERROR }
+    const ticketTypesForEvent = await ticketDb.getTicketTypes(ticketIds, eventId)
+    if (!ticketTypesForEvent) { return SYSTEM_ERROR() }
 
     let ticketCheckResponse = await checkForAvailableTickets(ticketTypesForEvent, ticketTypesToBuy)
 
@@ -99,7 +99,7 @@ async function reserveTickets({ buyerId = -1, eventId = -1, ticketTypes = [] }) 
  *          }] 
  */
 async function checkForAvailableTickets(ticketTypesForEvent, ticketTypesToBuy) {
-    if (!ticketTypesForEvent[0]) { return SYSTEM_ERROR }
+    if (!ticketTypesForEvent[0]) { return SYSTEM_ERROR() }
 
     let ticketsNotFound = []
     for (let j = 0; j < ticketTypesToBuy.length; j++) {
@@ -119,7 +119,7 @@ async function checkForAvailableTickets(ticketTypesForEvent, ticketTypesToBuy) {
             ticketsNotFound.push({
                 ticketTypeId: ticketTypeToBuy.ticketTypeId,
                 type: "error",
-                message: (ticketsLeft <= 10 ? `There ${ticketsLeft > 1 ? `are only ${ticketsLeft} `:ticketsLeft===1 ? `is only 1 `:`are no`} ` : `There are fewer than ${ticket.amount} `) + `${ticketsLeft === 1 ? 'ticket':'tickets'} left of type: ${ticketType.name}.\n`
+                message: (ticketsLeft <= 10 ? `There ${ticketsLeft > 1 ? `are only ${ticketsLeft} `:ticketsLeft===1 ? `is only 1 `:`are no`} ` : `There are fewer than ${ticketType.amount} `) + `${ticketsLeft === 1 ? 'ticket':'tickets'} left of type: ${ticketType.name}.\n`
             })
         }
     }
@@ -132,11 +132,12 @@ async function checkForAvailableTickets(ticketTypesForEvent, ticketTypesToBuy) {
  * @param {Integer} eventId
  * @param {String} buyerId
  * @param {Array} tickets : [{
- *                  id: Integer,
- *                  ownerInfo: {
- *                          name: String,
- *                          SSN: String (?)
- *                      }
+ *                  ticketTypeId: Integer,
+ *                  id: Integer, //This is the id of the ticket in the SoldTable!
+ *                  ownerInfo: [{
+ *                          label: String,
+ *                          value: String
+ *                      }]
  *              }]
  * @param {JSON} buyerInfo : {
  *                      name: String,
@@ -144,33 +145,7 @@ async function checkForAvailableTickets(ticketTypesForEvent, ticketTypesToBuy) {
  *                      SSN: String (?)
  *                  }    
  */
-// {
-//     "name":"ChiroPraktik 101",
-//     "country":"Germany",
-//     "city":"Berlin",
-//     "streetName": "Agnes-Wabnitz-Straße 9, 10249",
-//     "dates": "Jan 3-5, 2020",
-//     "schedule": ["Fri:   10:00 AM - 6:30 PM",
-//         "Sat:  8:30   AM - 6:30 PM",
-//         "Sun: 8:00   AM - 1:00 PM"],
-//     "tickets":[{
-//         "name":"Chiropraktor",
-//         "price":333.33333,
-//         "id":"123",
-//         "ownerInfo":[{
-//             "label":"Attendee name",
-//             "value":"Þórður Ágústsson"
-//         },{
-//             "label":"School",
-//             "value":"Macquarie University"
-//         }]
-//     }],
-//     "CECredits":3,
-//     "organization":"ICPA",
-//     "termsTitle":"Tickets Terms",
-//     "orderId": "109238"
-// }
-async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo = {}, insurance = null, insurancePrice = 0, ticketTypes = {} }) {
+async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo = {}, insurance = null, insurancePrice = 0 }) {
     let isBuying = await ticketDb.isBuying(eventId, buyerId)
 
     if(isBuying){return {success:false, messages:[{type:"error", message:"We are processing your payment. Please wait a few moments."}]}}
@@ -178,12 +153,12 @@ async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo 
     //Check if this buyer has reserved the tickets he is trying to buy.
     let reservedTickets = await ticketDb.getAllReservedTicketsForBuyer(buyerId, eventId, tickets)
 
-    if (!reservedTickets) { return SYSTEM_ERROR }
+    if (!reservedTickets) { return SYSTEM_ERROR() }
     if (!(await ticketsReservedMatchBuyerTickets(reservedTickets, tickets))) { return { success: false, messages: [{ type: "error", message: "The tickets you are trying to buy and the tickets reserved for you don't match. Please try again." }] } }
 
     let settings = await settingsDb.getSettings()
     
-    if(!settings){return SYSTEM_ERROR}
+    if(!settings){return SYSTEM_ERROR()}
 
     for(let i = 0; i < tickets.length; i++){
         tickets[i].termsTitle = settings.ticketsTermsTitle
@@ -210,13 +185,16 @@ async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo 
     if (createPDFResponse.success) { pdfBuffer = createPDFResponse.buffer }
 
     const orderId = buyingTicketsResponse.orderDetails.orderId
-    await sendReceiptMail(
-        `${WEBSITE_URL}/orders/${orderId}`,
-        'noreply@chirotix.com',
-        buyingTicketsResponse.orderDetails.buyerInfo.email,
-        'ChiroTix order',
-        pdfBuffer
-    )
+    if(!process.env.TEST){
+        console.log("SENDINGEMAIL!!!!")
+        await sendReceiptMail(
+            `${WEBSITE_URL}/orders/${orderId}`,
+            'noreply@chirotix.com',
+            buyingTicketsResponse.orderDetails.buyerInfo.email,
+            'ChiroTix order',
+            pdfBuffer
+        )
+    }
 
     ticketDb.doneBuying(eventId, buyerId)//Change isBuying from true to false.
 

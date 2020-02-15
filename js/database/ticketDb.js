@@ -8,7 +8,7 @@ const crypto = require('crypto');
 async function getEventInfoWithTicketTypes(eventId) {
     let query = `select * from ${DB_CONSTANTS.EVENTS_INFO_VIEW} where eventid=${eventId}`
     let result = await db.query(query)
-    if (!result.rows[0]) { return false }
+    if (!result || !result.rows[0]) { return false }
     return await formatter.formatEventInfoView(result.rows)
 }
 /**
@@ -17,16 +17,18 @@ async function getEventInfoWithTicketTypes(eventId) {
  * @param {Array} tickets : [{
  *                  ticketTypeId: Integer,
  *                  id: Integer, //This is the id of the ticket in the SoldTable!
- *                  ownerInfo: {
- *                          name: String,
- *                          SSN: String (?)
- *                      }
+ *                  ownerInfo: [{
+ *                          label: String,
+ *                          value: String
+ *                      }]
  *              }]
  * @param {JSON} buyerInfo : {
  *                      name: String,
  *                      email: String,
  *                      SSN: String (?)
  *                  }    
+ * 
+ * @param {JSON} receipt : {}
  */
 async function buyTickets(eventId, buyerId, tickets, buyerInfo, receipt, insurance, insurancePrice) {
     let message = {
@@ -60,7 +62,7 @@ async function buyTickets(eventId, buyerId, tickets, buyerInfo, receipt, insuran
             buyerId,
             newOrdrerNr
             ])
-        const orderDetails = formatter.formatOrderDetails(orderInsertResult.rows[0])
+        const orderDetails = await formatter.formatOrderDetails(orderInsertResult.rows[0])
 
         let boughtTickets = []
         let ticketTypes = []//Count how many tickets of a certain type the buyer wants to update the ticketsType table later
@@ -95,10 +97,11 @@ async function buyTickets(eventId, buyerId, tickets, buyerInfo, receipt, insuran
         message.eventInfo = eventInfo
         message.success = true
         message.chiroInfo = chiroInfo
+        delete message.messages
     } catch (e) {
         await client.query('ROLLBACK')
         console.log("BuyTickets error: ", e)
-        message = SYSTEM_ERROR
+        message = SYSTEM_ERROR()
     } finally {
         client.end()
     }
@@ -123,30 +126,11 @@ async function getAllReservedTicketsForBuyer(buyerId, eventId) {
     return reservedTickets
 }
 
-// /**
-//  * 
-//  * @param {Array} reservedTicketIds (Integers)
-//  * @param {Integer} eventId
-//  * @param {String} buyerId
-//  */
-// async function getReservedTickets(reservedTicketIds, eventId, buyerId) {
-//     let query = `Select * from ${DB_CONSTANTS.EVENTS_DB} where id=${eventId}`
-//     let result = await db.query(query)
-//     if (!result.rows[0]) { return false }
-//     let soldTicketsTableName = result.rows[0].ticketstablename
-
-//     query = `Select * from ${soldTicketsTableName} where id=Any('{${reservedTicketIds.toString()}}') and issold=false and buyerid='${buyerId}'`
-//     result = await db.query(query)
-//     let reservedTickets = await formatter.formatTickets(result.rows)
-
-//     return reservedTickets
-// }
-
 /**
  * @param {Array} ticketTypeIds : [Integer]
  */
-async function getTicketTypes(ticketTypeIds) {
-    let query = `select * from ${DB_CONSTANTS.TICKETS_TYPE_DB} where id=Any('{${ticketTypeIds.toString()}}')`
+async function getTicketTypes(ticketTypeIds, eventId) {
+    let query = `select * from ${DB_CONSTANTS.TICKETS_TYPE_DB} where id=Any('{${ticketTypeIds.toString()}}') and eventid=${eventId}`
     let ticketTypes = await db.query(query)
     if (!ticketTypes || ticketTypes.rows.length === 0) { return false }
     return await formatter.formatTicketTypes(ticketTypes.rows)
@@ -177,7 +161,7 @@ async function reserveTickets(eventId, buyerId, ticketTypes) {
 
         for (let j = 0; j < ticketTypes.length; j++) {
             let ticketType = ticketTypes[j]
-            let q = `update ${DB_CONSTANTS.TICKETS_TYPE_DB} set reserved = reserved + ${ticketType.amount} where id=${ticketType.id} and amount >= reserved+sold+${ticketType.amount} returning *`
+            let q = `update ${DB_CONSTANTS.TICKETS_TYPE_DB} set reserved = reserved + ${ticketType.amount} where id=${ticketType.id} and amount >= reserved+sold+${ticketType.amount} and eventid=${eventId} returning *`
             let qResult = await client.query(q)
             if(!qResult || !qResult.rows[0]){
                 await client.query('ROLLBACK')
@@ -214,10 +198,11 @@ async function reserveTickets(eventId, buyerId, ticketTypes) {
         delete message.messages
     } catch (e) {
         await client.query('ROLLBACK')
-        console.log("ReserveTickets error: ", e)
-        message = SYSTEM_ERROR
+        console.log("ReserveTickets error: ", JSON.stringify(e))
+        message = SYSTEM_ERROR()
+        // message = {success:false, messages:[{type:"error", message:"FUCKER"}]}
     } finally {
-        client.end()
+        await client.end()
     }
     return message
 }
@@ -269,48 +254,6 @@ async function releaseAllTicketsForBuyer(buyerId, eventId) {
     }
     return success
 }
-
-/**
- * 
- * @param {Array} reservedTicketIds (Integers)
- * @param {Integer} eventId
- * @param {Object} ticketTypesAmount : [String:Integer]
- */
-// async function releaseTickets(reservedTicketIds, ticketTypesAmount, eventId) {
-//     let message = {
-//         success: false,
-//         messages: []
-//     }
-//     const client = await db.getClient()
-//     try {
-//         let query = `Select * from ${DB_CONSTANTS.EVENTS_DB} where id=${eventId}`
-//         const eventInfo = await client.query(query)
-//         const eventTicketsTable = eventInfo.rows[0].ticketstablename
-
-//         await client.query('BEGIN')
-
-//         query = `delete from ${eventTicketsTable} where id=Any('{${reservedTicketIds.toString()}}') and issold=false and isbuying=false`
-//         await client.query(query)
-
-//         let ticketTypesIds = Object.keys(ticketTypesAmount)
-//         for (let i = 0; i < ticketTypesIds.length; i++) {
-//             let id = ticketTypesIds[i]
-//             let amount = ticketTypesAmount[id]
-//             query = `update ${DB_CONSTANTS.TICKETS_TYPE_DB} set reserved = reserved - ${amount} where id = ${id}`
-//             await client.query(query)
-//         }
-
-//         await client.query('COMMIT')
-//         message.success = true
-//     } catch (e) {
-//         await client.query('ROLLBACK')
-//         console.log("ReleaseTickets error: ", e)
-//         message = SYSTEM_ERROR
-//     } finally {
-//         client.end()
-//     }
-//     return message
-// }
 
 async function isBuying(eventId, buyerId){
     let isBuyingTickets = false

@@ -10,7 +10,6 @@ const { catchErrors } = require('../helpers')
 const {
   getEvents,
   insertEvent,
-  updateEvent,
   getEventById,
 } = require('../handlers/eventHandler')
 
@@ -19,8 +18,7 @@ const {
 } = require('../database/eventDb')
 
 const { 
-  validateInsertEvent,
-  validateUpdateEvent
+  validateInsertEvent
 } = require('../validation/eventValidation')
 
 const storage = multer.diskStorage({
@@ -32,11 +30,6 @@ const storage = multer.diskStorage({
   }
 })
 
-
-async function getEventsRoute(req, res){
-  const result = await getEvents()
-  return res.json(result)
-}
 
 async function insertEventRoute(req, res){
   const {
@@ -86,49 +79,6 @@ async function insertEventRoute(req, res){
     return res.status(200).json(result);
   }
   return res.status(400).json(result)
-}
-
-async function updateEventRoute(req, res){
-  const { id } = req.params
-
-  const check = await getEventById(id)
-  if(!check){
-    return res.status(404).json({message: 'This event does not exist'})
-  }
-
-  const {
-    name,
-    shortDescription,
-    longDescription,
-    image,
-    cityId,
-    latitude,
-    longitude,
-    tickets
-  } = req.body
-
-  const updatedEvent = {
-    name: name || null,
-    date: date || null,
-    shortDescription: shortDescription || null,
-    longDescription: longDescription || null,
-    image: image || null,
-    cityId: cityId || null,
-    latitude: latitude || null,
-    longitude: longitude || null,
-  }
-
-
-  const errors = validateUpdateEvent(updatedEvent, tickets)
-  if(errors.length > 0){
-    return res.status(400).json(errors)
-  }
-  const result = await updateEvent(id, updatedEvent, tickets)
-  if(result.success){
-    return res.status(200).json(result)
-  }
-
-  return res.status(500).json({success: false, message: 'Something went wrong updating event'})
 }
 
 async function uploadEventImageRoute(req, res){
@@ -181,15 +131,9 @@ async function getEvent(req, res){
   res.json(response)
 }
 
-
-
-
-router.get('/events', catchErrors(getEventsRoute))
+router.get('/insertValues', catchErrors(getInsertValuesRoute))
 router.get('/event/:id', catchErrors(getEvent))
 router.post('/events', catchErrors(insertEventRoute))
-router.patch('/events/:id', catchErrors(updateEventRoute))
 router.post('/eventImage', catchErrors(uploadEventImageRoute))
-router.get('/insertValues', catchErrors(getInsertValuesRoute))
-
 
 module.exports = router
