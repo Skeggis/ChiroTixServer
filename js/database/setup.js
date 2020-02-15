@@ -46,16 +46,19 @@ async function main() {
     );`)
 
   if (check.rows[0].exists) {
-    const res = await query(`SELECT * FROM ${EVENTS_DB}`)
-    let tables
-    for (i = 0; i < res.rows.length; i++) {
-      tables += res.rows[i].ticketstablename
-      if (i < res.rows.length - 1) {
-        tables += ','
+    let maxAmount = 100 //Can maybe be higher
+    let res = await query(`SELECT * FROM ${EVENTS_DB} ORDER BY id LIMIT ${maxAmount};`)
+    let doneDeletingTables = []
+    while (res.rows[0]) { //Changed because got error out of shared memory ERROR (https://dba.stackexchange.com/questions/77928/postgresql-complaining-about-shared-memory-but-shared-memory-seems-to-be-ok)
+      let tables = []
+      for (i = 0; i < res.rows.length; i++) {
+        tables.push(res.rows[i].ticketstablename)
+        doneDeletingTables.push(res.rows[i].ticketstablename)
       }
+      await query(`DROP TABLE IF EXISTS ${tables}`)
+      res = await query(`SELECT * FROM ${EVENTS_DB} WHERE NOT ticketstablename = Any('{${doneDeletingTables}}') ORDER BY id LIMIT ${maxAmount};`)
     }
 
-    await query(`DROP TABLE IF EXISTS ${tables}`)
   }
 
   await query(`DROP VIEW IF EXISTS ${EVENTS_INFO_VIEW}`)
@@ -95,7 +98,7 @@ async function main() {
     const orders = await readFileAsync('./sql/orders.sql')
     const chiroTixSettings = await readFileAsync('./sql/chiroTixSettings.sql')
     const users = await readFileAsync('./sql/users.sql')
-    
+
 
 
     await query(categories.toString('utf8'));

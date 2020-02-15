@@ -31,7 +31,7 @@ let message = {
 } catch (e){
     await client.query('ROLLBACK')
     console.log("Get search values error: ", e)
-    message = SYSTEM_ERROR
+    message = SYSTEM_ERROR()
   } finally {
     client.end()
   }

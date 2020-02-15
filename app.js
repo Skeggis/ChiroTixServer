@@ -1,8 +1,6 @@
 require('dotenv').config();
-const express = require('express');
-const passport = require('passport');
-var cors = require('cors')
 
+const app = require('./js/server')
 const {connectSocket} = require('./js/socket')
 const {
   errorHandler,

@@ -20,11 +20,10 @@ CREATE OR replace view eventsinfo AS
     tickets.name AS ticketname,
     tickets.ownerinfo AS ownerinfo,
 
-    chirotixsettings.insurancepercentage AS insurancepercentage
 
 
 FROM events
     INNER JOIN tickets ON tickets.eventid=events.id
     INNER JOIN cities ON events.cityid = cities.id
     INNER JOIN countries ON cities.countryid = countries.id
-    INNER JOIN organizations ON organizations.id = events.organizationid, chirotixsettings;
+    INNER JOIN organizations ON organizations.id = events.organizationid;

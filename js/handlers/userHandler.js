@@ -27,10 +27,10 @@ async function createUser({ name = '', email = '', password = '', confirmPasswor
           newUser.password = hashedPassword
           let dbUser = await usersDb.createUser(newUser)
           newUser.password = password
-          if (!dbUser) { return SYSTEM_ERROR } 
+          if (!dbUser) { return SYSTEM_ERROR() } 
           else { return {success: true, user: newUser} }
         } 
-        else { return SYSTEM_ERROR }
+        else { return SYSTEM_ERROR() }
       }
     }
   }

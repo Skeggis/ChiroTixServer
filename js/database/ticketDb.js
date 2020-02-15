@@ -7,10 +7,25 @@ const crypto = require('crypto');
 
 async function getEventInfoWithTicketTypes(eventId) {
     let query = `select * from ${DB_CONSTANTS.EVENTS_INFO_VIEW} where eventid=${eventId}`
-    let result = await db.query(query)
-    if (!result.rows[0]) { return false }
-    console.log(result.rows)
-    return await formatter.formatEventInfoView(result.rows)
+    let client = await db.getClient()
+    let temp
+    try {
+        await client.query('BEGIN')
+
+
+        let result = await client.query(query)
+        if (!result.rows[0]) { return false }
+        temp = await formatter.formatEventInfoView(result.rows)
+        const insurance = await client.query(`select insurancepercentage from ${CHIRO_TIX_SETTINGS_DB}`)
+        temp.insurancePercentage = insurance.rows[0].insurancepercentage
+    } catch (e) {
+        await client.query('ROLLBACK')
+        console.log("BuyTickets error: ", e)
+        return SYSTEM_ERROR
+    } finally {
+        client.end()
+    }
+    return temp
 }
 /**
  * @param {Integer} eventId
@@ -18,18 +33,20 @@ async function getEventInfoWithTicketTypes(eventId) {
  * @param {Array} tickets : [{
  *                  ticketTypeId: Integer,
  *                  id: Integer, //This is the id of the ticket in the SoldTable!
- *                  ownerInfo: {
- *                          name: String,
- *                          SSN: String (?)
- *                      }
+ *                  ownerInfo: [{
+ *                          label: String,
+ *                          value: String
+ *                      }]
  *              }]
  * @param {JSON} buyerInfo : {
  *                      name: String,
  *                      email: String,
  *                      SSN: String (?)
  *                  }    
+ * 
+ * @param {JSON} receipt : {}
  */
-async function buyTickets(eventId, buyerId, tickets, buyerInfo, receipt, insurance, insurancePrice) {
+async function buyTickets(eventId, buyerId, tickets, buyerInfo, receipt, insurance) {
     let message = {
         success: false,
         messages: []
@@ -40,7 +57,7 @@ async function buyTickets(eventId, buyerId, tickets, buyerInfo, receipt, insuran
 
         let eventInfoQuery = `Select * from ${DB_CONSTANTS.EVENTS_INFO_VIEW} where eventid=${eventId}`
         let eventInfoResponse = await client.query(eventInfoQuery)
-        const {eventInfo} = await formatter.formatEventInfoView(eventInfoResponse.rows)
+        const { eventInfo } = await formatter.formatEventInfoView(eventInfoResponse.rows)
         const eventTicketsTable = eventInfo.ticketsTableName
 
         //get the order id by incrementing the latest entry
@@ -48,20 +65,19 @@ async function buyTickets(eventId, buyerId, tickets, buyerInfo, receipt, insuran
         const newOrdrerNr = lastOrderNr.rows[0].ordernr + 1
 
         //Insert into the orders table
-        const ordersQuery = `insert into ${DB_CONSTANTS.ORDERS_DB} (orderid, eventid, receipt, tickets, insurance, insuranceprice, buyerinfo, buyerid, ordernr)
-                values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning *`
+        const ordersQuery = `insert into ${DB_CONSTANTS.ORDERS_DB} (orderid, eventid, receipt, tickets, insurance, buyerinfo, buyerid, ordernr)
+                values ($1, $2, $3, $4, $5, $6, $7, $8) returning *`
         const orderInsertResult = await client.query(ordersQuery,
-            [crypto.randomBytes(40).toString('hex'),
+            [crypto.randomBytes(6).toString('hex').toUpperCase(), //todo: insert orderid from receipt
                 eventId,
             JSON.stringify(receipt),
             JSON.stringify(tickets),
                 insurance,
-                insurancePrice,
             JSON.stringify(buyerInfo),
-            buyerId,
-            newOrdrerNr
+                buyerId,
+                newOrdrerNr
             ])
-        const orderDetails = formatter.formatOrderDetails(orderInsertResult.rows[0])
+        const orderDetails = await formatter.formatOrderDetails(orderInsertResult.rows[0])
 
         let boughtTickets = []
         let ticketTypes = []//Count how many tickets of a certain type the buyer wants to update the ticketsType table later
@@ -96,10 +112,11 @@ async function buyTickets(eventId, buyerId, tickets, buyerInfo, receipt, insuran
         message.eventInfo = eventInfo
         message.success = true
         message.chiroInfo = chiroInfo
+        delete message.messages
     } catch (e) {
         await client.query('ROLLBACK')
         console.log("BuyTickets error: ", e)
-        message = SYSTEM_ERROR
+        message = SYSTEM_ERROR()
     } finally {
         client.end()
     }
@@ -124,36 +141,17 @@ async function getAllReservedTicketsForBuyer(buyerId, eventId) {
     return reservedTickets
 }
 
-// /**
-//  * 
-//  * @param {Array} reservedTicketIds (Integers)
-//  * @param {Integer} eventId
-//  * @param {String} buyerId
-//  */
-// async function getReservedTickets(reservedTicketIds, eventId, buyerId) {
-//     let query = `Select * from ${DB_CONSTANTS.EVENTS_DB} where id=${eventId}`
-//     let result = await db.query(query)
-//     if (!result.rows[0]) { return false }
-//     let soldTicketsTableName = result.rows[0].ticketstablename
-
-//     query = `Select * from ${soldTicketsTableName} where id=Any('{${reservedTicketIds.toString()}}') and issold=false and buyerid='${buyerId}'`
-//     result = await db.query(query)
-//     let reservedTickets = await formatter.formatTickets(result.rows)
-
-//     return reservedTickets
-// }
-
 /**
  * @param {Array} ticketTypeIds : [Integer]
  */
-async function getTicketTypes(ticketTypeIds) {
-    let query = `select * from ${DB_CONSTANTS.TICKETS_TYPE_DB} where id=Any('{${ticketTypeIds.toString()}}')`
+async function getTicketTypes(ticketTypeIds, eventId) {
+    let query = `select * from ${DB_CONSTANTS.TICKETS_TYPE_DB} where id=Any('{${ticketTypeIds.toString()}}') and eventid=${eventId}`
     let ticketTypes = await db.query(query)
     if (!ticketTypes || ticketTypes.rows.length === 0) { return false }
     return await formatter.formatTicketTypes(ticketTypes.rows)
 }
 
-async function getTicketTypesOfEvent(id){
+async function getTicketTypesOfEvent(id) {
     let query = `select * from ${DB_CONSTANTS.TICKETS_TYPE_DB} where eventid=${id}`
     let ticketTypes = await db.query(query)
     if (!ticketTypes || ticketTypes.rows.length === 0) { return false }
@@ -169,7 +167,7 @@ async function getTicketTypesOfEvent(id){
  *              }]
  */
 async function reserveTickets(eventId, buyerId, ticketTypes) {
-    if(!(buyerId && eventId && ticketTypes && ticketTypes.length > 0)){return {success:false, messages:[{type:"error", message:"Invalid request. Please try again later."}]}}
+    if (!(buyerId && eventId && ticketTypes && ticketTypes.length > 0)) { return { success: false, messages: [{ type: "error", message: "Invalid request. Please try again later." }] } }
     let message = { success: false, messages: [] }
 
     const client = await db.getClient()
@@ -178,11 +176,11 @@ async function reserveTickets(eventId, buyerId, ticketTypes) {
 
         for (let j = 0; j < ticketTypes.length; j++) {
             let ticketType = ticketTypes[j]
-            let q = `update ${DB_CONSTANTS.TICKETS_TYPE_DB} set reserved = reserved + ${ticketType.amount} where id=${ticketType.id} and amount >= reserved+sold+${ticketType.amount} returning *`
+            let q = `update ${DB_CONSTANTS.TICKETS_TYPE_DB} set reserved = reserved + ${ticketType.amount} where id=${ticketType.id} and amount >= reserved+sold+${ticketType.amount} and eventid=${eventId} returning *`
             let qResult = await client.query(q)
-            if(!qResult || !qResult.rows[0]){
+            if (!qResult || !qResult.rows[0]) {
                 await client.query('ROLLBACK')
-                message.messages.push({type:"error", message:`Could not reserve your tickets of type ${ticketType.name}`})
+                message.messages.push({ type: "error", message: `Could not reserve your tickets of type ${ticketType.name}` })
                 break tryBlock
             }
             ticketTypes[j].price = qResult.rows[0].price
@@ -215,10 +213,11 @@ async function reserveTickets(eventId, buyerId, ticketTypes) {
         delete message.messages
     } catch (e) {
         await client.query('ROLLBACK')
-        console.log("ReserveTickets error: ", e)
-        message = SYSTEM_ERROR
+        console.log("ReserveTickets error: ", JSON.stringify(e))
+        message = SYSTEM_ERROR()
+        // message = {success:false, messages:[{type:"error", message:"FUCKER"}]}
     } finally {
-        client.end()
+        await client.end()
     }
     return message
 }
@@ -232,7 +231,7 @@ async function reserveTickets(eventId, buyerId, ticketTypes) {
 async function releaseAllTicketsForBuyer(buyerId, eventId) {
     let success = false
     let reservedTickets = await getAllReservedTicketsForBuyer(buyerId, eventId)
-    if(!reservedTickets || reservedTickets.length === 0){return true}
+    if (!reservedTickets || reservedTickets.length === 0) { return true }
     //Count how many tickets of each type this buyer had reserved
     let reservedTicketTypesAmount = []
     for (let i = 0; i < reservedTickets.length; i++) {
@@ -313,29 +312,29 @@ async function releaseAllTicketsForBuyer(buyerId, eventId) {
 //     return message
 // }
 
-async function isBuying(eventId, buyerId){
+async function isBuying(eventId, buyerId) {
     let isBuyingTickets = false
     const client = await db.getClient()
-    try{
+    try {
         await client.query('BEGIN')
         let query = `Select * from ${DB_CONSTANTS.EVENTS_DB} where id=${eventId}`
         const eventInfo = await client.query(query)
         const eventTicketsTable = eventInfo.rows[0].ticketstablename
 
         let result = await client.query(`update ${eventTicketsTable} set isbuying=true where issold = false and isbuying = false and buyerid = '${buyerId}' returning *`)
-        if(!result.rows[0]){ isBuyingTickets = true }
+        if (!result.rows[0]) { isBuyingTickets = true }
         await client.query('COMMIT')
-    } catch(e){
+    } catch (e) {
         console.log(e)
-    } finally{
+    } finally {
         await client.end()
         return isBuyingTickets
     }
 }
 
-async function doneBuying(eventId, buyerId){
+async function doneBuying(eventId, buyerId) {
     const client = await db.getClient()
-    try{
+    try {
         await client.query('BEGIN')
         let query = `Select * from ${DB_CONSTANTS.EVENTS_DB} where id=${eventId}`
         const eventInfo = await client.query(query)
@@ -343,22 +342,49 @@ async function doneBuying(eventId, buyerId){
 
         await client.query(`update ${eventTicketsTable} set isbuying=false where isbuying=true and buyerid = '${buyerId}'`)
         await client.query('COMMIT')
-    } catch(e){
+    } catch (e) {
         console.log(e)
-    } finally{
+    } finally {
         await client.end()
     }
 }
 
-async function getAllTicketsSoldIn(ticketsTableName){
+async function getAllTicketsSoldIn(ticketsTableName) {
     let query = `SELECT *, t.date as reserveddate, t.ownerinfo as ownerdata FROM ${ticketsTableName} AS t INNER JOIN ${DB_CONSTANTS.TICKETS_TYPE_DB} AS ti ON t.tickettypeid = ti.id;`
     let result = await db.query(query)
     return await formatter.formatTickets(result.rows)
 }
 
+async function getTicketsPrice(tickets) {
+    const client = await db.getClient()
+    let price = 0;
+    try {
+        await client.query('BEGIN')
+
+
+        for (let i = 0; i < tickets.length; i++) {
+            const result = await client.query(`select price from ${TICKETS_TYPE_DB} where id = $1`, [tickets[i].id])
+            price += result.rows[0].price
+        }
+
+        await client.query('COMMIT')
+    } catch (e) {
+        console.log(e)
+    } finally {
+        await client.end()
+    }
+    return price
+}
+
+async function getInsurancePercentage() {
+    const result = await db.query(`select insurancepercentage from ${CHIRO_TIX_SETTINGS_DB}`)
+    return result.rows[0].insurancepercentage
+}
+
+
 
 module.exports = {
     getTicketTypes, reserveTickets, buyTickets, getAllReservedTicketsForBuyer,
     releaseAllTicketsForBuyer, getEventInfoWithTicketTypes, isBuying, doneBuying,
-    getTicketTypesOfEvent, getAllTicketsSoldIn
+    getTicketTypesOfEvent, getAllTicketsSoldIn, getTicketsPrice, getInsurancePercentage
 }

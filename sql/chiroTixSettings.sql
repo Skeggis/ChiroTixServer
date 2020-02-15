@@ -3,5 +3,5 @@ create table chirotixsettings(
     ticketstermstitle varchar(255),
     ticketstermstext text,
     receiptinfo jsonb[] default '{}',
-    insurancepercentage decimal 
+    insurancepercentage decimal
 );
