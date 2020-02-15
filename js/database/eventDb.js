@@ -105,7 +105,7 @@ async function insertEventDb(event) {
     //need to check if speaker already exists before we create new
     //and need to check if old speaker is already connected to event
     let newSpeakers = []
-    let insertNewSpeakersQuery = `insert into ${DB_CONSTANTS.SPEAKERS_DB} (name) values`
+    let insertNewSpeakersQuery = `insert into ${DB_CONSTANTS.SPEAKERS_DB} (name, image) values`
     let oldSpeakers = []
     let speakerErrors = []
   
@@ -124,7 +124,7 @@ async function insertEventDb(event) {
         } else {
           newSpeakers.push(speaker)
           if (newSpeakers.length != 1) { insertNewSpeakersQuery += "," }
-          insertNewSpeakersQuery += ` ('${speaker.name}')`
+          insertNewSpeakersQuery += ` ('${speaker.name}', '${speaker.image}')`
         }
       }
     }

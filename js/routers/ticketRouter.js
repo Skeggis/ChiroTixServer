@@ -5,6 +5,8 @@ const { BAD_REQUEST } = require('../Messages')
 
 const { catchErrors } = require('../helpers')
 
+
+
 async function eventInfo(req, res) {
     let eventId = req.params.eventId
     if (!eventId) { return res.json(BAD_REQUEST("Invalid body request.")) }
@@ -47,7 +49,6 @@ async function reserveTickets(req, res) {
     }
 
     var response = await ticketHandler.reserveTickets(data)
-    console.log(response)
     if (!response.success) { return res.json(response) }
 
     let io = req.app.get('io')
@@ -116,6 +117,7 @@ async function buyTickets(req, res) {
     if (!(buyerId && eventId && tickets && buyerInfo)) { return res.json(BAD_REQUEST("Invalid body request.")) }
     if (tickets.length === 0) { return res.json(BAD_REQUEST("Invalid amount of tickets. Zero tickets not allowed.")) }
 
+    const workQueue = req.app.get('workQueue')
     const data = {
         buyerId,
         eventId,
@@ -123,7 +125,9 @@ async function buyTickets(req, res) {
         buyerInfo,
         insurance,
         ticketTypes,
-        paymentOptions
+        paymentOptions,
+        socketId,
+        workQueue
     }
 
     var response = await ticketHandler.buyTickets(data)

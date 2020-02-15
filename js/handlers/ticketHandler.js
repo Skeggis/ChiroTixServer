@@ -11,7 +11,8 @@ const crypto = require('crypto')
 const checkoutNodeJssdk = require('@paypal/checkout-server-sdk');
 
 
-const WEBSITE_URL = process.env.WEBSITE_URL
+
+
 
 
 
@@ -173,7 +174,7 @@ async function checkForAvailableTickets(ticketTypesForEvent, ticketTypesToBuy) {
 //     "termsTitle":"Tickets Terms",
 //     "orderId": "109238"
 // }
-async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo = {}, insurance = null, ticketTypes = {}, paymentOptions = {} }) {
+async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo = {}, insurance = null, paymentOptions = {}, ticketTypes = {}, socketId = -1, workQueue = null }) {
     let isBuying = await ticketDb.isBuying(eventId, buyerId)
 
     if (isBuying) { return { success: false, messages: [{ type: "error", message: "We are processing your payment. Please wait a few moments." }] } }
@@ -217,20 +218,24 @@ async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo 
     let createPDFResponse = await createTicketsPDF({ eventInfo: buyingTicketsResponse.eventInfo, tickets: buyingTicketsResponse.boughtTickets })
     let pdfBuffer;//TODO: handle if pdf creation fails.
     if (createPDFResponse.success) { pdfBuffer = createPDFResponse.buffer }
+  
+    //Worker test
+    const data = {
+        socketId,
+        eventId,
+        buyerId,
+        tickets,
+        buyerInfo,
+        receipt,
+        insurance,
+        insurancePrice
+    }
+    const job = await workQueue.add(data)
 
-    const orderId = buyingTicketsResponse.orderDetails.orderId
-    await sendReceiptMail(
-        `${WEBSITE_URL}/orders/${orderId}`,
-        'noreply@chirotix.com',
-        buyingTicketsResponse.orderDetails.buyerInfo.email,
-        'ChiroTix order',
-        pdfBuffer
-    )
-
-    ticketDb.doneBuying(eventId, buyerId)//Change isBuying from true to false.
-
-    return buyingTicketsResponse
+    return job.id
 }
+
+
 
 async function calculatePrice(tickets, insurance) {
     const ticketsPrice = await ticketDb.getTicketsPrice(tickets)
