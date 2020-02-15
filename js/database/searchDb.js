@@ -117,7 +117,7 @@ async function GetInitialSearchDb() {
         message.result.speakers = speakers.rows
 
         //Featured events
-        const featured = await client.query(`select * from ${DB_CONSTANTS.SEARCH_EVENTS_DB} where isvisible = true`)
+        const featured = await client.query(`select * from ${DB_CONSTANTS.SEARCH_EVENTS_DB} where isvisible = true order by featurednr asc limit ${featuredLimit}`)
         const t = await formatter.formatSearchEvents(featured.rows)
         message.result.featured = t
         await client.query('COMMIT')
