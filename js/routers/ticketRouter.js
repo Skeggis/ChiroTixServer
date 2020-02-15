@@ -1,3 +1,4 @@
+require('dotenv').config()
 const router = require('express').Router()
 const crypto = require('crypto')
 const ticketHandler = require('../handlers/ticketHandler')
@@ -56,8 +57,11 @@ async function reserveTickets(req, res) {
     let now = new Date()
     let releaseDate = new Date(now.getTime() + (timer))
 
-    io.sockets.connected[socketId].releaseTime = releaseDate
-    io.sockets.connected[socketId].timer = timer
+    if(io && io.sockets.connected[socketId] && !process.env.TEST){
+        io.sockets.connected[socketId].releaseTime = releaseDate
+        io.sockets.connected[socketId].timer = timer
+    }
+
     response.timer = timer
     response.releaseTime = releaseDate
 
@@ -106,15 +110,14 @@ async function buyTickets(req, res) {
             tickets = false,
             buyerInfo = false,
             insurance = false,
+            insurancePrice = 0,//TODO: should not depend on client to send the insurance price, or yes you should depend on the client but also confirm it on the server
             ticketTypes = false,
             socketId = false,
-            paymentOptions = false,
-            
-
+            paymentOptions = false
         }
     } = req
 
-    if (!(buyerId && eventId && tickets && buyerInfo)) { return res.json(BAD_REQUEST("Invalid body request.")) }
+    if (!(buyerId && eventId && tickets && buyerInfo && socketId)) { return res.json(BAD_REQUEST("Invalid body request.")) }
     if (tickets.length === 0) { return res.json(BAD_REQUEST("Invalid amount of tickets. Zero tickets not allowed.")) }
 
     const workQueue = req.app.get('workQueue')
@@ -124,6 +127,7 @@ async function buyTickets(req, res) {
         tickets,
         buyerInfo,
         insurance,
+        insurancePrice,
         ticketTypes,
         paymentOptions,
         socketId,
@@ -135,7 +139,7 @@ async function buyTickets(req, res) {
 
     if (response.success) {
         let io = req.app.get('io')
-        if (io.sockets.connected[socketId]) { clearTimeout(io.sockets.connected[socketId].timeOut) }
+        if (io && io.sockets.connected[socketId] && !process.env.TEST) { clearTimeout(io.sockets.connected[socketId].timeOut) }
     }
 }
 
@@ -145,10 +149,7 @@ async function buyTickets(req, res) {
  * @param {Object} req.body: {
  *                  eventId: Integer,
  *                  buyerId: String,
- *                  tickets : [{
- *                      ticketTypeId: Integer,
- *                      id: Integer
- *                  }]
+ *                  socketId: String
  * }
  */
 async function releaseTickets(req, res) {
@@ -156,13 +157,11 @@ async function releaseTickets(req, res) {
         body: {
             buyerId = false,
             eventId = false,
-            tickets = false,
             socketId = false
         }
     } = req
 
     if (!(buyerId && eventId)) { return res.json(BAD_REQUEST("Invalid body request.")) }
-    if (tickets.length === 0) { return res.json(BAD_REQUEST("Invalid amount of tickets. Zero tickets not allowed.")) }
 
     const data = {
         buyerId,
@@ -173,7 +172,7 @@ async function releaseTickets(req, res) {
 
     if (response.success) {
         let io = req.app.get('io')
-        if (io.sockets.connected[socketId]) { clearTimeout(io.sockets.connected[socketId].timeOut) }
+        if (io && io.sockets.connected[socketId] && !process.env.TEST) { clearTimeout(io.sockets.connected[socketId].timeOut) }
     }
     res.json(response)
 }

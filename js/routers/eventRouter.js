@@ -12,7 +12,6 @@ const { catchErrors } = require('../helpers')
 const {
   getEvents,
   insertEvent,
-  updateEvent,
   getEventById,
 } = require('../handlers/eventHandler')
 
@@ -176,15 +175,9 @@ async function getEvent(req, res) {
   res.json(response)
 }
 
-
-
-
-router.get('/events', catchErrors(getEventsRoute))
+router.get('/insertValues', catchErrors(getInsertValuesRoute))
 router.get('/event/:id', catchErrors(getEvent))
 router.post('/events', catchErrors(insertEventRoute))
-router.patch('/events/:id', catchErrors(updateEventRoute))
 router.post('/eventImage', catchErrors(uploadEventImageRoute))
-router.get('/insertValues', catchErrors(getInsertValuesRoute))
-
 
 module.exports = router

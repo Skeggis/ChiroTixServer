@@ -1,3 +1,12 @@
+async function noUndefinedKeys(obj){
+    let keys = Object.keys(obj)
+    for(let i = 0; i < keys.length; i++){
+        let type = typeof obj[keys[i]]
+        if(type !== 'string' && (type === 'undefined' || obj[keys[i]] === null)){delete obj[keys[i]]}
+    }
+    return obj
+}
+
 async function formatTicketForCustomer(ticket){
     let ownerInfo = {}
 
@@ -52,7 +61,7 @@ async function formatTickets(tickets){
 }
 
 async function formatTicket(ticket){
-    return{
+    let theTicket = await noUndefinedKeys({
         id: ticket.id,
         eventId: ticket.eventid,
         name: ticket.name,
@@ -67,30 +76,37 @@ async function formatTicket(ticket){
         termsText: ticket.termstext,
         price: ticket.price,
         
+        //
         isBuying: ticket.isbuying,
         isSold: ticket.issold,
         reservedDate: ticket.reserveddate,
         ownerData: ticket.ownerdata
-    }
+    })
+    return theTicket
 }
 
-async function formatEvent(event){
+async function formatEventFromEventsTable(event){
     return{
         id: event.id,
         name: event.name,
+        schedule: event.schedule,
         startDate: event.startdate,
         endDate: event.enddate,
-        dateRange: getDateRange(event.startdate, event.enddate),
         shortDescription: event.shortdescription,
         longDescription: event.longdescription,
         image: event.image,
-        countryId: event.countryid,
         cityId: event.cityid,
+        categoryId: event.categoryid,
         organizationId: event.organizationid,
         latitude: event.latitude,
         longitude: event.longitude,
         ticketsTableName: event.ticketstablename,
-        ownerInfo: event.ownerinfo
+        startSellingTime: event.startsellingtime,
+        finishSellingTime: event.finishsellingtime,
+        CECredits: event.cecredits,
+        insertDate: event.insertdate,
+
+        dateRange: getDateRange(event.startdate, event.enddate)
     }
 }
 
@@ -189,9 +205,9 @@ function formatSearchEvents(events){
     return newEvents
 }
 
-async function formatEvents(events){
+async function formatEventsFromEventsTable(events){
     let newEvents = []
-    for(let i = 0; i < events.length; i++){ newEvents.push(formatEvent(events[i])) }
+    for(let i = 0; i < events.length; i++){ newEvents.push(formatEventFromEventsTable(events[i])) }
     return newEvents
 }
 
@@ -221,12 +237,14 @@ async function formatSpeakers(speakers){
     return newSpeakers
 }
 
-function formatOrderDetails(details){
+async function formatOrderDetails(details){
+    let tickets = details.tickets
+    for(let i = 0; i < tickets.length; i++){tickets[i].date = new Date(tickets[i].date)}
     return {
         orderId: details.orderid,
         eventId: details.eventid,
         receipt: details.receipt,
-        tickets: details.tickets,
+        tickets: tickets,
         insurance: details.insurance,
         insurancePrice: parseFloat(details.insuranceprice).toFixed(2),
         buyerInfo: details.buyerinfo,
@@ -308,8 +326,8 @@ async function formatSchedule(schedule){
 module.exports = {
     formatTicketType, 
     formatTicketTypes, 
-    formatEvent, 
-    formatEvents, 
+    formatEventFromEventsTable, 
+    formatEventsFromEventsTable, 
     formatTicket, 
     formatTickets,
     formatTag, 
