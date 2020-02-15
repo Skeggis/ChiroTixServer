@@ -12,10 +12,8 @@ async function eventInfo(req, res) {
     if (!eventId) { return res.json(BAD_REQUEST("Invalid body request.")) }
 
     let responseData = await ticketHandler.getEventInfoWithTicketTypes(eventId)
-    if (!responseData) { return res.json(BAD_REQUEST('No event with this id')) }
-
-    responseData.success = true
-    responseData.buyerId = crypto.randomBytes(20).toString('hex')
+    if(responseData.success){responseData.buyerId = crypto.randomBytes(20).toString('hex')}
+    
     res.json(responseData)
 }
 

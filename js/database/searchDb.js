@@ -117,8 +117,8 @@ async function GetInitialSearchDb() {
         message.result.speakers = speakers.rows
 
         //Featured events
-        const featured = await client.query(`select * from ${DB_CONSTANTS.SEARCH_EVENTS_DB} where  order by featurednr asc limit ${featuredLimit}`)
-        const t = formatter.formatSearchEvents(featured.rows)
+        const featured = await client.query(`select * from ${DB_CONSTANTS.SEARCH_EVENTS_DB} where isvisible = true`)
+        const t = await formatter.formatSearchEvents(featured.rows)
         message.result.featured = t
         await client.query('COMMIT')
         message.success = true
@@ -142,7 +142,7 @@ async function getAllSearchableEvents() {
     if (!result) { return SYSTEM_ERROR() }
     
     const events = await formatter.formatSearchEvents(result.rows)
-    console.log(events)
+    events.sort((a,b) => a.id > b.id ? 1:-1)
     message = { success: true, events: events }
     return message
 }

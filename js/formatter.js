@@ -107,6 +107,10 @@ async function formatEventFromEventsTable(event){
         CECredits: event.cecredits,
         insertDate: event.insertdate,
 
+        isVisible: event.isvisible,
+        isSoldOut: event.issoldout,
+        isSelling: event.isselling,
+
         dateRange: getDateRange(event.startdate, event.enddate)
     }
 }
@@ -126,7 +130,11 @@ async function formatEventInfoView(rows){
         latitude: rows[0].latitude,
         longitude: rows[0].longitude,
         CECredits: rows[0].cecredits,
-        ticketsTableName: rows[0].ticketstablename
+        ticketsTableName: rows[0].ticketstablename,
+
+        isSoldOut: rows[0].issoldout,
+        isSelling: rows[0].isselling,
+        isVisible: rows[0].isvisible
     }
 
     let {dates, newSchedule} = await formatSchedule(rows[0].schedule)
@@ -142,7 +150,8 @@ async function formatEventInfoView(rows){
             price: parseFloat(rows[i].ticketprice).toFixed(2),
             name: rows[i].ticketname,
             amount: 0,
-            ownerInfo: rows[i].ownerinfo
+            ownerInfo: rows[i].ownerinfo,
+            isSoldOut: rows[i].amount >= rows[i].sold
         }) 
         if(rows[i].ticketprice < lowPrice){lowPrice = rows[i].ticketprice}
         if(rows[i].ticketprice > maxPrice){maxPrice = rows[i].ticketprice}
@@ -194,9 +203,12 @@ async function formatSearchEvent(event){
         CECredits: event.cecredits,
         categoryId: event.categoryid,
         featuredNr: event.featurednr,
-        textSearchableIndexCol: event.textsearchable_index_col,
         image: event.image,
-        shortDescription: event.shortdescription
+        shortDescription: event.shortdescription,
+
+        isSelling: event.isselling,
+        isVisible: event.isvisible,
+        isSoldOut: event.issoldout
     }
 }
 

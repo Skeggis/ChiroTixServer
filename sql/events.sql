@@ -16,7 +16,11 @@ create table events (
   startsellingtime TIMESTAMPTZ,
   finishsellingtime TIMESTAMPTZ,
   cecredits Int,
-  insertDate TIMESTAMPTZ default current_timestamp
+  insertDate TIMESTAMPTZ default current_timestamp,
+
+  isselling boolean default true,
+    isvisible boolean default true,
+    issoldout boolean default false
 );
 
 -- CREATE view searchevents AS

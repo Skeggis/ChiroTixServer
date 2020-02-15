@@ -41,19 +41,22 @@ describe('#ticketDb.js', async function () {
 
     context('.getEventInfoWithTicketTypes: A site visitor goes to buy tickets for an event', async function () {
         it('should return the event information and ticket types available to buy for the correct event', async function () {
-            let event = await ticketDb.getEventInfoWithTicketTypes(eventId)
+            let data = await ticketDb.getEventInfoWithTicketTypes(eventId)
 
-            expect(event).to.have.keys(['eventInfo', 'ticketTypes', 'insurancePercentage'])
-            expect(event.eventInfo.id).to.be.equal(eventId)
+            expect(data).to.have.keys(['event','success', 'insurancePercentage'])
+            expect(data.event).to.have.keys(['eventInfo', 'ticketTypes'])
+            expect(data.event.eventInfo.id).to.be.equal(eventId)
 
-            eventInfo = event.eventInfo
-            ticketTypes = event.ticketTypes
+            eventInfo = data.event.eventInfo
+            ticketTypes = data.event.ticketTypes
         })
 
         it('should return an error because the event id supplied is not associated to an event', async function () {
-            let event = await ticketDb.getEventInfoWithTicketTypes(-1)
+            let data = await ticketDb.getEventInfoWithTicketTypes(-1)
 
-            expect(event).to.be.false
+            expect(data).to.have.keys(['success', 'messages'])
+            expect(data.success).to.be.false
+            expect(data.messages).to.have.length(1)
         })
     })
 

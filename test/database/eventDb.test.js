@@ -130,6 +130,9 @@ describe('#eventDb.js: ', async function () {
           startsellingtime: event.startSellingTime,
           finishsellingtime: event.finishSellingTime,
           cecredits: event.CECredits,
+          isselling: true,
+          issoldout: false,
+          isvisible: true
         }
 
         let result = await db.query(`select * from ${EVENTS_DB} where id = ${eventId}`)

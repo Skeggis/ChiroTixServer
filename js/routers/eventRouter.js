@@ -172,6 +172,7 @@ async function getInsertValuesRoute(req, res) {
 async function getEvent(req, res) {
   const { id } = req.params
   let response = await getEventById(id)
+  if(!response){return res.json(BAD_REQUEST("Could not find this event"))}
   res.json(response)
 }
 

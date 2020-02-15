@@ -10,6 +10,12 @@ async function changeTicketState(ticketTypeId){
     return await formatter.formatTicketType(ticket)
 }
 
+async function changeEventState({eventId=-1, isSelling=true, isSoldOut=false, isVisible=true}){
+    let response = await eventDb.changeEventState(eventId, isSelling, isSoldOut, isVisible)
+    if(response.success && response.event){response.event = await formatter.formatSearchEvent(response.event)}
+    return response
+}
+
 async function getEventsInfoWithTicketTypes() {
     let eventsMessage = await searchDb.getAllSearchableEvents()
     if (!eventsMessage || !eventsMessage.success) { return null }
@@ -42,4 +48,4 @@ async function getTicketsXLSheetFor(id) {
     return {buffer:buf, success:true}
 }
 
-module.exports = { getEventsInfoWithTicketTypes, getTicketsXLSheetFor, changeTicketState }
+module.exports = { getEventsInfoWithTicketTypes, getTicketsXLSheetFor, changeTicketState, changeEventState }

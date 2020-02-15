@@ -39,7 +39,21 @@ async function changeTicketState(req, res){
     res.json({success:true, ticket:ticket})
 }
 
+async function changeEventState(req, res){
+    const {
+        isSelling = null,
+        isSoldOut = null,
+        isVisible = null,
+        eventId = -1
+    } = req.body
+    if(eventId === -1 || (isSelling === null || isSoldOut === null || isVisible === null)){return res.json(BAD_REQUEST('Kommon bró'))}
+    let response = await adminHandler.changeEventState({eventId, isSelling, isSoldOut, isVisible})
+    res.json(response)
+    // console.log("response:", response)
+}
+
 router.get('/eventsInfo', catchErrors(eventsInfo))
 router.get('/downloadTickets/:eventId', catchErrors(downloadTicketsXL))
 router.post('/changeTicketState', catchErrors(changeTicketState))
+router.post('/changeEventState', catchErrors(changeEventState))
 module.exports = router

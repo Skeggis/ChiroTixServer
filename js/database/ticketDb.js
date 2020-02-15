@@ -6,26 +6,32 @@ const { DB_CONSTANTS } = require('../helpers')
 const crypto = require('crypto');
 
 async function getEventInfoWithTicketTypes(eventId) {
-    let query = `select * from ${DB_CONSTANTS.EVENTS_INFO_VIEW} where eventid=${eventId}`
+    let query = `select * from ${DB_CONSTANTS.EVENTS_INFO_VIEW} where eventid=${eventId} and isvisible = true`
     let client = await db.getClient()
-    let temp
+    let message = {}
     try {
         await client.query('BEGIN')
 
-
         let result = await client.query(query)
-        if (!result.rows[0]) { return false }
-        temp = await formatter.formatEventInfoView(result.rows)
+        if (!result.rows[0]) { return {success: false, messages:[{message:"Could not find the event you are looking for.", type:"error"}]} }
+        if(!result.rows[0].isselling) { return {success: false, messages:[{message:"This event is not in sale at the moment. Please check when it will be in sale and try again.", type:"error" }]}}
+        if(result.rows[0].issoldout){ return {success: false, messages:[{message:"This event is sold out.", type:"error"}]}}
+        
+        message.event = await formatter.formatEventInfoView(result.rows)
         const insurance = await client.query(`select insurancepercentage from ${CHIRO_TIX_SETTINGS_DB}`)
-        temp.insurancePercentage = insurance.rows[0].insurancepercentage
+        message.insurancePercentage = insurance.rows[0].insurancepercentage
+        
+        await client.query('COMMIT')
+        message.success = true
     } catch (e) {
         await client.query('ROLLBACK')
         console.log("BuyTickets error: ", e)
-        return SYSTEM_ERROR
+        return SYSTEM_ERROR()
     } finally {
         client.end()
     }
-    return temp
+    console.log("RETURNING:", message)
+    return message
 }
 /**
  * @param {Integer} eventId
