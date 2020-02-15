@@ -1,5 +1,5 @@
 require('dotenv').config()
-const {HOST} = require('../helpers')
+const { HOST } = require('../helpers')
 const ticketDb = require('../database/ticketDb')
 const settingsDb = require('../database/settingsDb')
 const { SYSTEM_ERROR } = require('../Messages')
@@ -8,7 +8,8 @@ const {
 } = require('../handlers/emailHandler')
 const { createTicketsPDF } = require('../createPDFHTML/createPDF')
 
-const WEBSITE_URL = process.env.WEBSITE_URL
+
+
 
 
 
@@ -75,9 +76,15 @@ async function reserveTickets({ buyerId = -1, eventId = -1, ticketTypes = [] }) 
         }
     }
 
+<<<<<<< HEAD
     if(ticketTypesToBuy.length === 0){return {success: false, messages:[{type:"error", message:"You must buy at least 1 ticket.", title:"No tickets selected"}]}}
     const ticketTypesForEvent = await ticketDb.getTicketTypes(ticketIds, eventId)
     if (!ticketTypesForEvent) { return SYSTEM_ERROR() }
+=======
+    if (ticketTypesToBuy.length === 0) { return { success: false, messages: [{ type: "error", message: "You must buy at least 1 ticket.", title: "No tickets selected" }] } }
+    const ticketTypesForEvent = await ticketDb.getTicketTypes(ticketIds)
+    if (!ticketTypes) { return SYSTEM_ERROR }
+>>>>>>> development
 
     let ticketCheckResponse = await checkForAvailableTickets(ticketTypesForEvent, ticketTypesToBuy)
 
@@ -119,7 +126,11 @@ async function checkForAvailableTickets(ticketTypesForEvent, ticketTypesToBuy) {
             ticketsNotFound.push({
                 ticketTypeId: ticketTypeToBuy.ticketTypeId,
                 type: "error",
+<<<<<<< HEAD
                 message: (ticketsLeft <= 10 ? `There ${ticketsLeft > 1 ? `are only ${ticketsLeft} `:ticketsLeft===1 ? `is only 1 `:`are no`} ` : `There are fewer than ${ticketType.amount} `) + `${ticketsLeft === 1 ? 'ticket':'tickets'} left of type: ${ticketType.name}.\n`
+=======
+                message: (ticketsLeft <= 10 ? `There ${ticketsLeft > 1 ? `are only ${ticketsLeft} ` : ticketsLeft === 1 ? `is only 1 ` : `are no`} ` : `There are fewer than ${ticket.amount} `) + `${ticketsLeft === 1 ? 'ticket' : 'tickets'} left of type: ${ticketType.name}.\n`
+>>>>>>> development
             })
         }
     }
@@ -145,10 +156,40 @@ async function checkForAvailableTickets(ticketTypesForEvent, ticketTypesToBuy) {
  *                      SSN: String (?)
  *                  }    
  */
+<<<<<<< HEAD
 async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo = {}, insurance = null, insurancePrice = 0 }) {
+=======
+// {
+//     "name":"ChiroPraktik 101",
+//     "country":"Germany",
+//     "city":"Berlin",
+//     "streetName": "Agnes-Wabnitz-Straße 9, 10249",
+//     "dates": "Jan 3-5, 2020",
+//     "schedule": ["Fri:   10:00 AM - 6:30 PM",
+//         "Sat:  8:30   AM - 6:30 PM",
+//         "Sun: 8:00   AM - 1:00 PM"],
+//     "tickets":[{
+//         "name":"Chiropraktor",
+//         "price":333.33333,
+//         "id":"123",
+//         "ownerInfo":[{
+//             "label":"Attendee name",
+//             "value":"Þórður Ágústsson"
+//         },{
+//             "label":"School",
+//             "value":"Macquarie University"
+//         }]
+//     }],
+//     "CECredits":3,
+//     "organization":"ICPA",
+//     "termsTitle":"Tickets Terms",
+//     "orderId": "109238"
+// }
+async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo = {}, insurance = null, insurancePrice = 0, ticketTypes = {}, socketId = -1, workQueue = null }) {
+>>>>>>> development
     let isBuying = await ticketDb.isBuying(eventId, buyerId)
 
-    if(isBuying){return {success:false, messages:[{type:"error", message:"We are processing your payment. Please wait a few moments."}]}}
+    if (isBuying) { return { success: false, messages: [{ type: "error", message: "We are processing your payment. Please wait a few moments." }] } }
 
     //Check if this buyer has reserved the tickets he is trying to buy.
     let reservedTickets = await ticketDb.getAllReservedTicketsForBuyer(buyerId, eventId, tickets)
@@ -157,10 +198,15 @@ async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo 
     if (!(await ticketsReservedMatchBuyerTickets(reservedTickets, tickets))) { return { success: false, messages: [{ type: "error", message: "The tickets you are trying to buy and the tickets reserved for you don't match. Please try again." }] } }
 
     let settings = await settingsDb.getSettings()
+<<<<<<< HEAD
     
     if(!settings){return SYSTEM_ERROR()}
+=======
+>>>>>>> development
 
-    for(let i = 0; i < tickets.length; i++){
+    if (!settings) { return SYSTEM_ERROR }
+
+    for (let i = 0; i < tickets.length; i++) {
         tickets[i].termsTitle = settings.ticketsTermsTitle
         tickets[i].termsText = settings.ticketsTermsText
     }
@@ -176,14 +222,20 @@ async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo 
         lines: ticketTypes
     } //Get from Borgun/Paypal. TODO: Paypal/Borgun
 
-    const buyingTicketsResponse = await ticketDb.buyTickets(eventId, buyerId, tickets, buyerInfo, receipt, insurance, insurancePrice)
+    //Worker test
+    const data = {
+        socketId,
+        eventId,
+        buyerId,
+        tickets,
+        buyerInfo,
+        receipt,
+        insurance,
+        insurancePrice
+    }
+    const job = await workQueue.add(data)
 
-    if (!buyingTicketsResponse.success) { return buyingTicketsResponse }
-
-    let createPDFResponse = await createTicketsPDF({ eventInfo: buyingTicketsResponse.eventInfo, tickets: buyingTicketsResponse.boughtTickets })
-    let pdfBuffer;//TODO: handle if pdf creation fails.
-    if (createPDFResponse.success) { pdfBuffer = createPDFResponse.buffer }
-
+<<<<<<< HEAD
     const orderId = buyingTicketsResponse.orderDetails.orderId
     if(!process.env.TEST){
         console.log("SENDINGEMAIL!!!!")
@@ -195,11 +247,12 @@ async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo 
             pdfBuffer
         )
     }
-
-    ticketDb.doneBuying(eventId, buyerId)//Change isBuying from true to false.
-
-    return buyingTicketsResponse
+=======
+    return job.id
 }
+>>>>>>> development
+
+
 
 /**
  * 
