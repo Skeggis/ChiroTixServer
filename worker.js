@@ -72,6 +72,7 @@ async function saveOrder(eventId, buyerId, tickets, buyerInfo, receipt, insuranc
 async function handlePayment(paymentOptions, insurance, tickets) {
   console.log(paymentOptions.method)
   const price = await calculatePrice(tickets, insurance)
+  console.log('price',price)
   if(paymentOptions.method === 'borgun'){
       return await handleBorgunPayment(price, paymentOptions.Token, insurance)  
   } else if (paymentOptions.method === 'paypal'){
@@ -85,12 +86,17 @@ async function handlePayment(paymentOptions, insurance, tickets) {
 async function calculatePrice(tickets, insurance) {
   const ticketsPrice = await ticketDb.getTicketsPrice(tickets)
   console.log(ticketsPrice)
+  console.log('insurance', insurance)
   if (insurance) {
       const percentage = await ticketDb.getInsurancePercentage()
+      console.log('per', percentage)
       const insurancePrice = (percentage * ticketsPrice).toFixed(2)
+      console.log('ins', insurancePrice)
+      const totalPrice = (parseFloat(insurancePrice) + ticketsPrice).toFixed(2)
+      console.log('total', totalPrice)
       return {
-          totalPrice: (insurancePrice + ticketsPrice).toFixed(2),
-          insurancePrice
+          totalPrice: totalPrice,
+          insurancePrice: insurancePrice
       }
   } else {
       return { totalPrice: ticketsPrice }
@@ -150,11 +156,10 @@ async function handlePaypalPayment(price, orderId, insurance){
     console.error(err);
     return SYSTEM_ERROR
   }
-console.log(order)
   // 5. Validate the transaction details are as expected
   console.log(price)
   console.log(order.result.purchase_units[0].amount.value)
-  if (order.result.purchase_units[0].amount.value !== parseInt(price.totalPrice).toFixed(2)) {
+  if (order.result.purchase_units[0].amount.value !== parseFloat(price.totalPrice).toFixed(2)) {
     return BAD_REQUEST('You did not pay the expected amount')
   }
 
