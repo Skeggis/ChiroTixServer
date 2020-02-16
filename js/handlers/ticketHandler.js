@@ -79,7 +79,7 @@ async function reserveTickets({ buyerId = -1, eventId = -1, ticketTypes = [] }) 
         }
     }
 
-    if(ticketTypesToBuy.length === 0){return {success: false, messages:[{type:"error", message:"You must buy at least 1 ticket.", title:"No tickets selected"}]}}
+    if (ticketTypesToBuy.length === 0) { return { success: false, messages: [{ type: "error", message: "You must buy at least 1 ticket.", title: "No tickets selected" }] } }
     const ticketTypesForEvent = await ticketDb.getTicketTypes(ticketIds, eventId)
     if (!ticketTypesForEvent) { return SYSTEM_ERROR() }
 
@@ -123,7 +123,7 @@ async function checkForAvailableTickets(ticketTypesForEvent, ticketTypesToBuy) {
             ticketsNotFound.push({
                 ticketTypeId: ticketTypeToBuy.ticketTypeId,
                 type: "error",
-                message: (ticketsLeft <= 10 ? `There ${ticketsLeft > 1 ? `are only ${ticketsLeft} `:ticketsLeft===1 ? `is only 1 `:`are no`} ` : `There are fewer than ${ticketType.amount} `) + `${ticketsLeft === 1 ? 'ticket':'tickets'} left of type: ${ticketType.name}.\n`
+                message: (ticketsLeft <= 10 ? `There ${ticketsLeft > 1 ? `are only ${ticketsLeft} ` : ticketsLeft === 1 ? `is only 1 ` : `are no`} ` : `There are fewer than ${ticketType.amount} `) + `${ticketsLeft === 1 ? 'ticket' : 'tickets'} left of type: ${ticketType.name}.\n`
             })
         }
     }
@@ -176,11 +176,35 @@ async function checkForAvailableTickets(ticketTypesForEvent, ticketTypesToBuy) {
 //     "termsTitle":"Tickets Terms",
 //     "orderId": "109238"
 // }
-async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo = {}, insurance = null, insurancePrice = 0, ticketTypes = {}, socketId = -1, workQueue = null }) {
+async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo = {}, insurance = null, insurancePrice = 0, ticketTypes = {}, socketId = -1, workQueue = null, paymentOptions = {} }) {
     let isBuying = await ticketDb.isBuying(eventId, buyerId)
 
     if (isBuying) { return { success: false, messages: [{ type: "error", message: "We are processing your payment. Please wait a few moments." }] } }
 
+    let ticketsBoughtResponse = {}
+    try {
+        ticketsBoughtResponse = await buyTheTickets({
+            eventId,
+            buyerId,
+            tickets,
+            buyerInfo,
+            insurance,
+            insurancePrice,
+            ticketTypes,
+            socketId,
+            workQueue,
+            paymentOptions
+        })
+    } catch (error) {
+        console.log("Error trying to buy tickets:", error)
+        ticketsBoughtResponse = SYSTEM_ERROR()
+    }
+
+    if(!ticketsBoughtResponse.success){ticketDb.doneBuying(eventId, buyerId)}
+    return ticketsBoughtResponse
+}
+
+async function buyTheTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo = {}, insurance = null, insurancePrice = 0, ticketTypes = {}, socketId = -1, workQueue = null, paymentOptions = {} }) {
     //Check if this buyer has reserved the tickets he is trying to buy.
     let reservedTickets = await ticketDb.getAllReservedTicketsForBuyer(buyerId, eventId, tickets)
 
@@ -188,18 +212,16 @@ async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo 
     if (!(await ticketsReservedMatchBuyerTickets(reservedTickets, tickets))) { return { success: false, messages: [{ type: "error", message: "The tickets you are trying to buy and the tickets reserved for you don't match. Please try again." }] } }
 
     let settings = await settingsDb.getSettings()
-    
-    if(!settings){return SYSTEM_ERROR()}
+
+    if (!settings) { return SYSTEM_ERROR() }
 
     for (let i = 0; i < tickets.length; i++) {
         tickets[i].termsTitle = settings.ticketsTermsTitle
         tickets[i].termsText = settings.ticketsTermsText
     }
 
-    const paymentResult = await handlePayment(paymentOptions, insurance)
-    if(!paymentResult.success){
-        return paymentResult
-    }
+    const paymentResult = await handlePayment(tickets, paymentOptions, insurance)
+    if (!paymentResult.success) { return paymentResult }
     console.log(paymentResult)
 
     let receipt = {
@@ -220,7 +242,7 @@ async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo 
     let createPDFResponse = await createTicketsPDF({ eventInfo: buyingTicketsResponse.eventInfo, tickets: buyingTicketsResponse.boughtTickets })
     let pdfBuffer;//TODO: handle if pdf creation fails.
     if (createPDFResponse.success) { pdfBuffer = createPDFResponse.buffer }
-  
+
     //Worker test
     const data = {
         socketId,
@@ -235,7 +257,7 @@ async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo 
     const job = await workQueue.add(data)
 
     const orderId = buyingTicketsResponse.orderDetails.orderId
-    if(!process.env.TEST){
+    if (!process.env.TEST) {
         console.log("SENDINGEMAIL!!!!")
         await sendReceiptMail(
             `${WEBSITE_URL}/orders/${orderId}`,
@@ -245,14 +267,14 @@ async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo 
             pdfBuffer
         )
     }
-    return job.id
+    return {jobID: job.id, success:true}
 }
 
 
 
 async function calculatePrice(tickets, insurance) {
     const ticketsPrice = await ticketDb.getTicketsPrice(tickets)
-
+    console.log("PRICE:", ticketsPrice)
     if (insurance) {
         const percentage = await ticketDb.getInsurancePercentage()
         const insurancePrice = (percentage * ticketsPrice).toFixed(2)
@@ -274,25 +296,25 @@ async function calculatePrice(tickets, insurance) {
  * }
  * 
  */
-async function handlePayment(paymentOptions, insurance) {
-        const price = await calculatePrice(tickets, insurance)
-        if(paymentOptions.method === 'borgun'){
-            return await handleBorgunPayment(price, paymentOptions.Token, insurance)  
-        } else if (paymentOptions.method === 'paypal'){
-            return await handlePaypalPayment(price, paymentOptions.orderId, insurance)
-        } else {
-            return SYSTEM_ERROR
-        }
+async function handlePayment(tickets, paymentOptions, insurance) {
+    const price = await calculatePrice(tickets, insurance)
+    if (paymentOptions.method === 'borgun') {
+        return await handleBorgunPayment(price, paymentOptions.Token, insurance)
+    } else if (paymentOptions.method === 'paypal') {
+        return await handlePaypalPayment(price, paymentOptions.orderId, insurance)
+    } else {
+        return SYSTEM_ERROR()
+    }
 }
 
-async function handleBorgunPayment(price, Token, insurance){
+async function handleBorgunPayment(price, Token, insurance) {
     const orderId = crypto.randomBytes(6).toString('hex').toUpperCase()
 
     const borgunResult = await fetch('someapihere and private key', {
         method: 'POST',
         headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
         },
         data: JSON.stringify({
             TransactionType: 'Sale',
@@ -313,30 +335,30 @@ async function handleBorgunPayment(price, Token, insurance){
     const borgunData = await borgunResult.json()
 }
 
-async function handlePaypalPayment(price, orderId, insurance){
-  // 3. Call PayPal to get the transaction details
-  let request = new checkoutNodeJssdk.orders.OrdersGetRequest(orderId);
+async function handlePaypalPayment(price, orderId, insurance) {
+    // 3. Call PayPal to get the transaction details
+    let request = new checkoutNodeJssdk.orders.OrdersGetRequest(orderId);
 
-  let order
-  try {
-    order = await client().client().execute(request);
-  } catch (err) {
+    let order
+    try {
+        order = await client().client().execute(request);
+    } catch (err) {
 
-    // 4. Handle any errors from the call
-    console.error(err);
-    return SYSTEM_ERROR
-  }
+        // 4. Handle any errors from the call
+        console.error(err);
+        return SYSTEM_ERROR()
+    }
 
-  // 5. Validate the transaction details are as expected
-  if (order.result.purchase_units[0].amount.value !== price) {
-    return BAD_REQUEST('You did not pay the expected amount')
-  }
+    // 5. Validate the transaction details are as expected
+    if (order.result.purchase_units[0].amount.value !== price) {
+        return BAD_REQUEST('You did not pay the expected amount')
+    }
 
-  // 6. Save the transaction in your database
-  // await database.saveTransaction(orderID);
+    // 6. Save the transaction in your database
+    // await database.saveTransaction(orderID);
 
-  // 7. Return a successful response to the client
-  return order;
+    // 7. Return a successful response to the client
+    return order;
 
 }
 
@@ -354,7 +376,7 @@ function environment() {
     let clientId = process.env.PAYPAL_CLIENT_ID || 'PAYPAL-SANDBOX-CLIENT-ID';
     let clientSecret = process.env.PAYPAL_CLIENT_SECRET || 'PAYPAL-SANDBOX-CLIENT-SECRET';
 
-    if(process.env.PRODUCTION){
+    if (process.env.PRODUCTION) {
         return new checkoutNodeJssdk.core.LiveEnvironment(clientId, clientSecret)
     } else {
         return new checkoutNodeJssdk.core.SandboxEnvironment(clientId, clientSecret);

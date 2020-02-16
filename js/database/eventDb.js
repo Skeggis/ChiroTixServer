@@ -181,8 +181,9 @@ let message = {success:false}
     }
 
     let insertSearchQuery = `insert into ${DB_CONSTANTS.SEARCH_EVENTS_DB} (eventid, name, organizationid, countryid, cityid,
-      startdate, enddate, minprice, maxprice, tagsids, speakersids, cecredits, categoryid, description, organization, country, city, speakers, tags, image, shortdescription) 
-      values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14, $15, $16, $17, $18, $19, $20, $21) returning *`
+      startdate, enddate, minprice, maxprice, tagsids, speakersids, cecredits, categoryid, description, organization, country, 
+      city, speakers, tags, image, shortdescription, startsellingtime, finishsellingtime) 
+      values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14, $15, $16, $17, $18, $19, $20, $21, $22, $23) returning *`
     let minPrice = Infinity
     let maxPrice = 0
     for (let i = 0; i < event.tickets.length; i++) {
@@ -196,7 +197,8 @@ let message = {success:false}
     const searchEventValues = [eventR.id, event.name, myOrganizationId, countryId, event.cityId,
     event.startDate, event.endDate, minPrice, maxPrice, tagIds || [], speakersIds, event.CECredits,
     event.category, event.longDescription + " " + event.shortDescription, myOrganization.name,
-      country, cityResult.rows[0].name, speakersNames, tags, event.image, event.shortDescription]
+      country, cityResult.rows[0].name, speakersNames, tags, event.image, event.shortDescription,
+    event.startSellingTime, event.finishSellingTime]
 
     let searchTableResult = await client.query(insertSearchQuery, searchEventValues)
 
@@ -270,8 +272,9 @@ async function getInsertValuesDb() {
 }
 
 async function getEventByIdDb(id){
-  let eventQuery = `select * from ${DB_CONSTANTS.EVENTS_INFO_VIEW} where eventid = ${id}`
+  let eventQuery = `select * from ${DB_CONSTANTS.EVENTS_INFO_VIEW} where eventid = ${id} and isvisible = true`
   let result = await query(eventQuery)
+  if(!result.rows[0]){return null}
   let {eventInfo} = await formatter.formatEventInfoView(result.rows)
   let tagsQuery = `select * from ${DB_CONSTANTS.TAGS_CONNECT_DB} inner join ${TAGS_DB} on 
   ${DB_CONSTANTS.TAGS_CONNECT_DB}.tagid = ${TAGS_DB}.id where eventid = ${id}`
@@ -285,10 +288,46 @@ async function getEventByIdDb(id){
   return {eventInfo}
 }
 
+async function changeEventState(eventId, isSelling, isSoldOut, isVisible){
+  let client = await getClient()
+  let message = {}
+  tryBlock: try {
+    await client.query('BEGIN')
+    let result = await client.query(`update ${DB_CONSTANTS.EVENTS_DB} set isselling = ${isSelling}, issoldout = ${isSoldOut}, isvisible = ${isVisible}
+    where id = ${eventId} returning *`)
+    if(!result.rows[0]){
+      await client.query('ROLLBACK')
+      message = {success:false, messages:[{message:"FAILURE ON FIRST", type:"error"}]}
+      break tryBlock
+    }
+
+    result = await client.query(`update ${DB_CONSTANTS.SEARCH_EVENTS_DB} set isselling = ${isSelling}, issoldout = ${isSoldOut}, isvisible = ${isVisible}
+    where eventid = ${eventId} returning *`)
+    if(!result.rows[0]){
+      await client.query('ROLLBACK')
+      message = {success:false, messages:[{message:"FAILURE ON SECOND", type:"error"}]}
+      break tryBlock
+    }
+
+
+
+    await client.query('COMMIT')
+    message.success = true
+    message.event = result.rows[0]
+  } catch (error) {
+    await client.query('ROLLBACK')
+    console.log(error)
+    message = {success:false, messages:[{message:"MAJOR FAILURE", type:"error"}]}
+  } finally{
+    await client.end()
+    return message
+  }
+}
 
 
 module.exports = {
   insertEventDb,
   getEventByIdDb,
-  getInsertValuesDb
+  getInsertValuesDb,
+  changeEventState
 }
