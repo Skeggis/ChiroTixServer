@@ -64,6 +64,7 @@ workQueue.on('global:completed', (jobId, result) => {
   const io = app.get('io')
   const jsonResult = JSON.parse(result)
   const socket = io.sockets.connected[jsonResult.socketId]
+  console.log('Emiiting paymentProcessed')
   socket.emit('paymentProcessed', jsonResult.result)
 });
 

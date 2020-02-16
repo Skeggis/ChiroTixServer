@@ -91,12 +91,13 @@ async function calculateTime(tickets) {
  *                      email: String,
  *                      SSN: String (?)
  *                  },
+ *                  cardInformaition: {?},
  *                  paymentOptions: {
- *                      method: String ('borgun' || 'paypal')
+ *                      method: String('borgun' | 'paypal'),
+ *                      insuranceVerified: boolean (only if methid = 'borgun'),
  *                      Token: String (only if method is borgun)
  *                      orderId: String (only if method is paypal)
- *                  },
- *                  insurance: boolean
+ *                  }
  * } 
  */
 async function buyTickets(req, res) {
@@ -129,7 +130,8 @@ async function buyTickets(req, res) {
         ticketTypes,
         paymentOptions,
         socketId,
-        workQueue
+        workQueue,
+        paymentOptions
     }
 
     var response = {}

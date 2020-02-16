@@ -131,7 +131,6 @@ async function formatEventInfoView(rows){
         longitude: rows[0].longitude,
         CECredits: rows[0].cecredits,
         ticketsTableName: rows[0].ticketstablename,
-
         isSoldOut: rows[0].issoldout,
         isSelling: rows[0].isselling,
         isVisible: rows[0].isvisible

@@ -9,9 +9,7 @@ const {
 const { createTicketsPDF } = require('../createPDFHTML/createPDF')
 const crypto = require('crypto')
 const checkoutNodeJssdk = require('@paypal/checkout-server-sdk');
-
-
-
+const paypalClient = require('../paypalEnvironment')
 
 
 
@@ -220,29 +218,18 @@ async function buyTheTickets({ eventId = -1, buyerId = -1, tickets = [], buyerIn
         tickets[i].termsText = settings.ticketsTermsText
     }
 
-    const paymentResult = await handlePayment(tickets, paymentOptions, insurance)
-    if (!paymentResult.success) { return paymentResult }
-    console.log(paymentResult)
 
-    let receipt = {
-        cardNumber: '7721',
-        expiryDate: '03/22',
-        amount: 200,
-        name: 'Róbert Ingi Huldarsson',
-        address: 'Álfaberg 24',
-        place: '221, Hafnarfjörður',
-        country: 'Iceland',
-        lines: ticketTypes
-    } //Get from Borgun/Paypal. TODO: Paypal/Borgun
 
-    const buyingTicketsResponse = await ticketDb.buyTickets(eventId, buyerId, tickets, buyerInfo, receipt, insurance)
+ //Get from Borgun/Paypal. TODO: Paypal/Borgun
 
-    if (!buyingTicketsResponse.success) { return buyingTicketsResponse }
+    // const buyingTicketsResponse = await ticketDb.buyTickets(eventId, buyerId, tickets, buyerInfo, receipt, insurance)
 
-    let createPDFResponse = await createTicketsPDF({ eventInfo: buyingTicketsResponse.eventInfo, tickets: buyingTicketsResponse.boughtTickets })
-    let pdfBuffer;//TODO: handle if pdf creation fails.
-    if (createPDFResponse.success) { pdfBuffer = createPDFResponse.buffer }
+    // if (!buyingTicketsResponse.success) { return buyingTicketsResponse }
 
+    // let createPDFResponse = await createTicketsPDF({ eventInfo: buyingTicketsResponse.eventInfo, tickets: buyingTicketsResponse.boughtTickets })
+    // let pdfBuffer;//TODO: handle if pdf creation fails.
+    // if (createPDFResponse.success) { pdfBuffer = createPDFResponse.buffer }
+  
     //Worker test
     const data = {
         socketId,
@@ -250,138 +237,18 @@ async function buyTheTickets({ eventId = -1, buyerId = -1, tickets = [], buyerIn
         buyerId,
         tickets,
         buyerInfo,
-        receipt,
         insurance,
-        insurancePrice
+        insurancePrice,
+        paymentOptions,
+        ticketTypes
     }
     const job = await workQueue.add(data)
 
-    const orderId = buyingTicketsResponse.orderDetails.orderId
-    if (!process.env.TEST) {
-        console.log("SENDINGEMAIL!!!!")
-        await sendReceiptMail(
-            `${WEBSITE_URL}/orders/${orderId}`,
-            'noreply@chirotix.com',
-            buyingTicketsResponse.orderDetails.buyerInfo.email,
-            'ChiroTix order',
-            pdfBuffer
-        )
-    }
-    return {jobID: job.id, success:true}
+
+    return {success: true}
 }
 
 
-
-async function calculatePrice(tickets, insurance) {
-    const ticketsPrice = await ticketDb.getTicketsPrice(tickets)
-    console.log("PRICE:", ticketsPrice)
-    if (insurance) {
-        const percentage = await ticketDb.getInsurancePercentage()
-        const insurancePrice = (percentage * ticketsPrice).toFixed(2)
-        return {
-            totalPrice: (insurancePrice + ticketsPrice).toFixed(2),
-            insurancePrice
-        }
-    } else {
-        return { totalPrice: ticketsPrice.toFixed(2) }
-    }
-}
-
-
-/**
- * paymentOptions: {
- *      method: String ('borgun' || 'paypal')
- *      Token: String (only if method is borgun)
- *      orderId: String (only if method is paypal)
- * }
- * 
- */
-async function handlePayment(tickets, paymentOptions, insurance) {
-    const price = await calculatePrice(tickets, insurance)
-    if (paymentOptions.method === 'borgun') {
-        return await handleBorgunPayment(price, paymentOptions.Token, insurance)
-    } else if (paymentOptions.method === 'paypal') {
-        return await handlePaypalPayment(price, paymentOptions.orderId, insurance)
-    } else {
-        return SYSTEM_ERROR()
-    }
-}
-
-async function handleBorgunPayment(price, Token, insurance) {
-    const orderId = crypto.randomBytes(6).toString('hex').toUpperCase()
-
-    const borgunResult = await fetch('someapihere and private key', {
-        method: 'POST',
-        headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-        },
-        data: JSON.stringify({
-            TransactionType: 'Sale',
-            Amount: price.totalPrice,
-            Currency: '840', //usd
-            TransactionDate: new Date().toISOString(),
-            OrderId: orderId,
-            PaymentMethod: {
-                PaymentType: 'TokenSingle',
-                Token: Token
-            },
-            Metadata: insurance ? {
-                insurancePrice: price.insurancePrice
-            } : {}
-        })
-    })
-
-    const borgunData = await borgunResult.json()
-}
-
-async function handlePaypalPayment(price, orderId, insurance) {
-    // 3. Call PayPal to get the transaction details
-    let request = new checkoutNodeJssdk.orders.OrdersGetRequest(orderId);
-
-    let order
-    try {
-        order = await client().client().execute(request);
-    } catch (err) {
-
-        // 4. Handle any errors from the call
-        console.error(err);
-        return SYSTEM_ERROR()
-    }
-
-    // 5. Validate the transaction details are as expected
-    if (order.result.purchase_units[0].amount.value !== price) {
-        return BAD_REQUEST('You did not pay the expected amount')
-    }
-
-    // 6. Save the transaction in your database
-    // await database.saveTransaction(orderID);
-
-    // 7. Return a successful response to the client
-    return order;
-
-}
-
-function client() {
-    return new checkoutNodeJssdk.core.PayPalHttpClient(environment());
-}
-
-/**
- *
- * Set up and return PayPal JavaScript SDK environment with PayPal access credentials.
- * This sample uses SandboxEnvironment. In production, use LiveEnvironment.
- *
- */
-function environment() {
-    let clientId = process.env.PAYPAL_CLIENT_ID || 'PAYPAL-SANDBOX-CLIENT-ID';
-    let clientSecret = process.env.PAYPAL_CLIENT_SECRET || 'PAYPAL-SANDBOX-CLIENT-SECRET';
-
-    if (process.env.PRODUCTION) {
-        return new checkoutNodeJssdk.core.LiveEnvironment(clientId, clientSecret)
-    } else {
-        return new checkoutNodeJssdk.core.SandboxEnvironment(clientId, clientSecret);
-    }
-}
 
 /**
  * 

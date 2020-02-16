@@ -365,6 +365,7 @@ async function getAllTicketsSoldIn(ticketsTableName) {
 async function getTicketsPrice(tickets) {
     const client = await db.getClient()
     let price = 0;
+    console.log(tickets)
     try {
         await client.query('BEGIN')
 
