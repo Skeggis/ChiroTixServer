@@ -134,22 +134,22 @@ async function buyTickets(req, res) {
         paymentOptions
     }
 
-    var response = {}
-    try {
-        response = await ticketHandler.buyTickets(data)
-    } catch (error) {
-        console.log("Error Buying tickets", error)
-        response = SYSTEM_ERROR()
-    }
+    // var response = {}
+    // try {
+    //     response = await ticketHandler.buyTickets(data)
+    // } catch (error) {
+    //     console.log("Error Buying tickets", error)
+    //     response = SYSTEM_ERROR()
+    // }
 
-    if (response.success) {
-        console.log("SUCCESS??")
-        let io = req.app.get('io')
-        if (io && io.sockets.connected[socketId] && !process.env.TEST) { clearTimeout(io.sockets.connected[socketId].timeOut) }
-    }
+    // if (response.success) {
+    //     console.log("SUCCESS??")
+    //     let io = req.app.get('io')
+    //     if (io && io.sockets.connected[socketId] && !process.env.TEST) { clearTimeout(io.sockets.connected[socketId].timeOut) }
+    // }
+    const job = await workQueue.add(data)
 
-    console.log("Responding with:", response)
-    res.json(response)
+    return {success: true}
 }
 
 

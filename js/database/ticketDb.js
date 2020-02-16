@@ -371,7 +371,7 @@ async function getTicketsPrice(tickets) {
 
 
         for (let i = 0; i < tickets.length; i++) {
-            const result = await client.query(`select price from ${TICKETS_TYPE_DB} where id = $1`, [tickets[i].id])
+            const result = await client.query(`select price from ${TICKETS_TYPE_DB} where id = $1`, [tickets[i].ticketTypeId])
             price += parseFloat(result.rows[0].price)
         }
 
