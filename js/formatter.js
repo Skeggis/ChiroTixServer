@@ -87,6 +87,7 @@ async function formatTicket(ticket){
 }
 
 async function formatEventFromEventsTable(event){
+    let date = new Date()
     return{
         id: event.id,
         name: event.name,
@@ -109,13 +110,15 @@ async function formatEventFromEventsTable(event){
 
         isVisible: event.isvisible,
         isSoldOut: event.issoldout,
-        isSelling: event.isselling,
+        isSelling: event.isselling && (date >= new Date(event.startsellingtime) && date <= new Date(event.finishsellingtime) && date <= new Date(event.startdate)),
 
+        adminIsSelling: event.isselling,
         dateRange: getDateRange(event.startdate, event.enddate)
     }
 }
 
 async function formatEventInfoView(rows){
+    let date = new Date()
     let eventInfo = {
         id: rows[0].eventid,
         name: rows[0].eventname,
@@ -132,8 +135,9 @@ async function formatEventInfoView(rows){
         CECredits: rows[0].cecredits,
         ticketsTableName: rows[0].ticketstablename,
         isSoldOut: rows[0].issoldout,
-        isSelling: rows[0].isselling,
-        isVisible: rows[0].isvisible
+        isSelling: rows[0].isselling && (date >= new Date(rows[0].startsellingtime) && date <= new Date(rows[0].finishsellingtime) && date <= new Date(rows[0].startdate)),
+        isVisible: rows[0].isvisible,
+        adminIsSelling: rows[0].isselling
     }
 
     let {dates, newSchedule} = await formatSchedule(rows[0].schedule)
@@ -144,13 +148,14 @@ async function formatEventInfoView(rows){
     let lowPrice = Infinity
     let maxPrice = 0
     for(let i = 0; i < rows.length; i++){
+        console.log(rows[i].amount, rows[i].sold)
         ticketTypes.push({
             id: rows[i].tickettypeid,
             price: parseFloat(rows[i].ticketprice).toFixed(2),
             name: rows[i].ticketname,
             amount: 0,
             ownerInfo: rows[i].ownerinfo,
-            isSoldOut: rows[i].amount >= rows[i].sold
+            isSoldOut: rows[i].amount <= rows[i].sold
         }) 
         if(rows[i].ticketprice < lowPrice){lowPrice = rows[i].ticketprice}
         if(rows[i].ticketprice > maxPrice){maxPrice = rows[i].ticketprice}
@@ -174,6 +179,7 @@ function getDateRange(startDate, endDate){
 }
 
 async function formatSearchEvent(event){
+    let date = new Date()
     return {
         id: event.eventid,
         name: event.name,
@@ -205,9 +211,11 @@ async function formatSearchEvent(event){
         image: event.image,
         shortDescription: event.shortdescription,
 
-        isSelling: event.isselling,
+        isSelling: event.isselling && (date >= new Date(event.startsellingtime) && date <= new Date(event.finishsellingtime) && date <= new Date(event.startdate)),
         isVisible: event.isvisible,
-        isSoldOut: event.issoldout
+        isSoldOut: event.issoldout,
+
+        adminIsSelling: event.isselling
     }
 }
 

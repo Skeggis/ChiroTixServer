@@ -13,6 +13,8 @@ CREATE OR replace view eventsinfo AS
     events.isvisible as isvisible,
     events.issoldout as issoldout,
     events.isselling as isselling,
+    events.startsellingtime as startsellingtime,
+    events.finishsellingtime as finishsellingtime,
 
     organizations.name AS organization,
     countries.name AS country,

@@ -1,3 +1,5 @@
+const { BAD_REQUEST } = require('../Messages')
+
 const {
   insertEventDb,
   getEventByIdDb
@@ -41,7 +43,8 @@ async function insertEvent(event){
 
 async function getEventById(id){
   const result = await getEventByIdDb(id)
-  return result
+  if(!result){return BAD_REQUEST("Could not find event")}
+  return {eventInfo:result.eventInfo, success:true}
 }
 
 module.exports = {

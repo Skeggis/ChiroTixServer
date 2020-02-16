@@ -8,6 +8,7 @@ const stream = require('stream')
 const fs = require('fs')
 
 async function eventsInfo(req,res){
+    console.log("HERE")
     /**
      * events : [{
      *          eventInfo: {},
