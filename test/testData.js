@@ -13,11 +13,21 @@ async function generateNewBuyerInfo() {
     }
 }
 
+Date.prototype.addDays = function(days) {
+    var date = new Date(this.valueOf());
+    date.setDate(date.getDate() + days);
+    return date;
+}
+
 async function generateNewEvent({speakers=false, organization=false, tickets=false, tags=false} = {}) {
+    let startSellingTime = faker.date.past()
+    let finishSellingTime = faker.date.between(new Date(), faker.date.future())
+    let startDate = faker.date.between(finishSellingTime, (new Date(finishSellingTime)).addDays(faker.random.number(5)))
+    let endDate = faker.date.between(startDate, (new Date(startDate)).addDays(faker.random.number(50)))
     return {
         name: faker.random.words(),
-        startDate: new Date('2020-01-01T21:28:53.897Z'),
-        endDate: new Date('2020-01-02T21:28:53.897Z'),
+        startDate: startDate,
+        endDate: endDate,
         shortDescription: faker.lorem.paragraph(),
         longDescription: faker.lorem.paragraphs(),
         image: faker.image.nature(),
@@ -25,8 +35,8 @@ async function generateNewEvent({speakers=false, organization=false, tickets=fal
         category: 1,
         longitude: (faker.random.number({min: 0, max: 1, precision: 0.01})*100).toString(),
         latitude: (faker.random.number({min: 0, max: 1, precision: 0.01})*100).toString(),
-        startSellingTime: new Date('2020-01-01T21:28:53.897Z'),
-        finishSellingTime: new Date('2020-01-13T21:28:53.897Z'),
+        startSellingTime: startSellingTime,
+        finishSellingTime: finishSellingTime,
         CECredits: faker.random.number(16),
         schedule: [
             { date: "2020-01-01", endTime: "2020-01-01T16:05:57.000Z", startTime: "2020-01-01T14:00:57.000Z" },

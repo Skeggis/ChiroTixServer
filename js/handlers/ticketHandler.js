@@ -68,6 +68,10 @@ async function reserveTickets({ buyerId = -1, eventId = -1, ticketTypes = [] }) 
     let { success } = await releaseAllTicketsForBuyer({ buyerId, eventId })
     if (!success) { return SYSTEM_ERROR() }
 
+    let res = await ticketDb.isEventEligibleForSale(eventId)
+
+    if(!res.success){return res}
+
     let ticketIds = []
     let ticketTypesToBuy = []
     for (let j = 0; j < ticketTypes.length; j++) {
@@ -175,6 +179,9 @@ async function checkForAvailableTickets(ticketTypesForEvent, ticketTypesToBuy) {
 //     "orderId": "109238"
 // }
 async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo = {}, insurance = null, insurancePrice = 0, ticketTypes = {}, socketId = -1, workQueue = null, paymentOptions = {} }) {
+    let res = await ticketDb.isEventEligibleForSale(eventId)
+
+    if(!res.success){return res}
     let isBuying = await ticketDb.isBuying(eventId, buyerId)
 
     if (isBuying) { return { success: false, messages: [{ type: "error", message: "We are processing your payment. Please wait a few moments." }] } }
@@ -199,6 +206,7 @@ async function buyTickets({ eventId = -1, buyerId = -1, tickets = [], buyerInfo 
     }
 
     if(!ticketsBoughtResponse.success){ticketDb.doneBuying(eventId, buyerId)}
+    ticketDb.updateEventSoldOutState(eventId) //If tickets where bought then update soldOut state (it updates to isSoldOut=true if all tickets are sold)
     return ticketsBoughtResponse
 }
 

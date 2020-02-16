@@ -42,7 +42,6 @@ describe('#ticketDb.js', async function () {
     context('.getEventInfoWithTicketTypes: A site visitor goes to buy tickets for an event', async function () {
         it('should return the event information and ticket types available to buy for the correct event', async function () {
             let data = await ticketDb.getEventInfoWithTicketTypes(eventId)
-
             expect(data).to.have.keys(['event','success', 'insurancePercentage'])
             expect(data.event).to.have.keys(['eventInfo', 'ticketTypes'])
             expect(data.event.eventInfo.id).to.be.equal(eventId)

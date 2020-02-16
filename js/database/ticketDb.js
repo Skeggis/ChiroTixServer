@@ -5,6 +5,17 @@ const { SYSTEM_ERROR } = require('../Messages')
 const { DB_CONSTANTS } = require('../helpers')
 const crypto = require('crypto');
 
+async function isEventEligibleForSale(eventId){
+    let query = `select * from ${DB_CONSTANTS.EVENTS_DB} where id = ${eventId}`
+    let result = await db.query(query)
+    if(!result.rows[0]){return SYSTEM_ERROR()}
+    let event = await formatter.formatEventFromEventsTable(result.rows[0])
+    if(!event.isSelling) { return {success: false, messages:[{message:"This event is not in sale at the moment. Please check when it will be in sale and try again.", type:"error" }]}}
+    if(event.isSoldOut){ return {success: false, messages:[{message:"This event is sold out.", type:"error"}]}}
+    if(!event.isVisible){ return {success: false, messages:[{message:"This event is not available for sale.", type:"error"}]}}
+    return {success: true}
+}
+
 async function getEventInfoWithTicketTypes(eventId) {
     let query = `select * from ${DB_CONSTANTS.EVENTS_INFO_VIEW} where eventid=${eventId} and isvisible = true`
     let client = await db.getClient()
@@ -14,10 +25,13 @@ async function getEventInfoWithTicketTypes(eventId) {
 
         let result = await client.query(query)
         if (!result.rows[0]) { return {success: false, messages:[{message:"Could not find the event you are looking for.", type:"error"}]} }
-        if(!result.rows[0].isselling) { return {success: false, messages:[{message:"This event is not in sale at the moment. Please check when it will be in sale and try again.", type:"error" }]}}
-        if(result.rows[0].issoldout){ return {success: false, messages:[{message:"This event is sold out.", type:"error"}]}}
-        
+
         message.event = await formatter.formatEventInfoView(result.rows)
+        console.log(message.event.ticketTypes)
+        if(!message.event.eventInfo.isSelling) { return {success: false, messages:[{message:"This event is not in sale at the moment. Please check when it will be in sale and try again.", type:"error" }]}}
+        if(message.event.eventInfo.isSoldOut){ return {success: false, messages:[{message:"This event is sold out.", type:"error"}]}}
+        
+        
         const insurance = await client.query(`select insurancepercentage from ${CHIRO_TIX_SETTINGS_DB}`)
         message.insurancePercentage = insurance.rows[0].insurancepercentage
         
@@ -151,12 +165,13 @@ async function getAllReservedTicketsForBuyer(buyerId, eventId) {
  * @param {Array} ticketTypeIds : [Integer]
  */
 async function getTicketTypes(ticketTypeIds, eventId) {
-    let query = `select * from ${DB_CONSTANTS.TICKETS_TYPE_DB} where id=Any('{${ticketTypeIds.toString()}}') and eventid=${eventId}`
+    let query = `select * from ${DB_CONSTANTS.TICKETS_TYPE_DB} where id=Any('{${ticketTypeIds.toString()}}') and eventid=${eventId} and disabled = false`
     let ticketTypes = await db.query(query)
     if (!ticketTypes || ticketTypes.rows.length === 0) { return false }
     return await formatter.formatTicketTypes(ticketTypes.rows)
 }
 
+//Admin Func
 async function getTicketTypesOfEvent(id) {
     let query = `select * from ${DB_CONSTANTS.TICKETS_TYPE_DB} where eventid=${id}`
     let ticketTypes = await db.query(query)
@@ -338,6 +353,39 @@ async function isBuying(eventId, buyerId) {
     }
 }
 
+async function updateEventSoldOutState(eventId){
+    let query = `select * from ${DB_CONSTANTS.TICKETS_TYPE_DB} where eventid = ${eventId}`
+    const client = await db.getClient()
+
+    try{
+        await client.query('BEGIN')
+        let result = await client.query(query)
+        if(result.rows[0]){
+            let soldOut = true
+            for(let i = 0; i < result.rows.length; i++){
+                let ticket = result.rows[i]
+                if(ticket.amount > ticket.sold){
+                    soldOut = false
+                    break
+                }
+            }
+            if(soldOut){
+                query = `update ${DB_CONSTANTS.EVENTS_DB} set issoldout = true where id = ${eventId} and issoldout = false`
+                await client.query(query)
+                query = `update ${DB_CONSTANTS.SEARCH_EVENTS_DB} set issoldout = true where eventid = ${eventId} and issoldout = false`
+                await client.query(query)
+            }
+        }
+        await client.query('COMMIT')
+
+    } catch(e){
+        console.log("update sold out state error:", e)
+        await client.query('ROLLBACK')
+    } finally{
+        await client.end()
+    }
+}
+
 async function doneBuying(eventId, buyerId) {
     const client = await db.getClient()
     try {
@@ -345,7 +393,6 @@ async function doneBuying(eventId, buyerId) {
         let query = `Select * from ${DB_CONSTANTS.EVENTS_DB} where id=${eventId}`
         const eventInfo = await client.query(query)
         const eventTicketsTable = eventInfo.rows[0].ticketstablename
-        console.log(`update ${eventTicketsTable} set isbuying=false where isbuying=true and buyerid = '${buyerId}'`)
         await client.query(`update ${eventTicketsTable} set isbuying=false where isbuying=true and buyerid = '${buyerId}'`)
         await client.query('COMMIT')
 
@@ -400,5 +447,5 @@ module.exports = {
     getTicketTypes, reserveTickets, buyTickets, getAllReservedTicketsForBuyer,
     releaseAllTicketsForBuyer, getEventInfoWithTicketTypes, isBuying, doneBuying,
     getTicketTypesOfEvent, getAllTicketsSoldIn, getTicketsPrice, getInsurancePercentage,
-    changeTicketState
+    changeTicketState, isEventEligibleForSale, updateEventSoldOutState
 }
