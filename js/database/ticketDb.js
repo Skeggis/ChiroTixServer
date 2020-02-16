@@ -358,12 +358,14 @@ async function getAllTicketsSoldIn(ticketsTableName) {
 async function getTicketsPrice(tickets) {
     const client = await db.getClient()
     let price = 0;
+    console.log(tickets)
     try {
         await client.query('BEGIN')
 
 
         for (let i = 0; i < tickets.length; i++) {
-            const result = await client.query(`select price from ${TICKETS_TYPE_DB} where id = $1`, [tickets[i].id])
+            const result = await client.query(`select price from ${TICKETS_TYPE_DB} where id = $1`, [tickets[i].ticketTypeId])
+            console.log('result.rows ', result)
             price += result.rows[0].price
         }
 

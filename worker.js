@@ -4,6 +4,8 @@ const io = require('socket.io')
 const ticketDb = require('./js/database/ticketDb')
 const { sendReceiptMail } = require('./js/handlers/emailHandler')
 const { createTicketsPDF } = require('./js/createPDFHTML/createPDF')
+const checkoutNodeJssdk = require('@paypal/checkout-server-sdk');
+const paypalClient = require('./js/paypalEnvironment')
 
 const WEBSITE_URL = process.env.WEBSITE_URL
 const REDIS_URL = process.env.REDIS_URL || "redis://127.0.0.1:6379";
@@ -20,16 +22,24 @@ function start() {
 
   workQueue.process(maxJobsPerWorker, async (job) => {
     const data = job.data
-    let progress = 0
-    while (progress < 10) {
-      await sleep(1000)
-      progress += 1
-      job.progress(progress)
-      console.log(progress)
+      //job.progress(progress)
+    const paymentResult = await handlePayment(data.paymentOptions, data.insurance, data.tickets)
+    if(!paymentResult.success){
+        return {result: paymentResult, socketId: data.socketId}
     }
 
-    const result = await saveOrder(data.eventId, data.buyerId, data.tickets, data.buyerInfo, data.receipt, data.insurance, data.insurancePrice)
-    console.log(result)
+    let receipt = {
+      cardNumber: '7721',
+      expiryDate: '03/22',
+      amount: paymentResult.price,
+      name: 'Róbert Ingi Huldarsson',
+      address: 'Álfaberg 24',
+      place: '221, Hafnarfjörður',
+      country: 'Iceland',
+      lines: job.ticketTypes
+  }
+
+    const result = await saveOrder(data.eventId, data.buyerId, data.tickets, data.buyerInfo, receipt, data.insurance, data.insurancePrice)
 
     return { result, socketId: data.socketId }
   })
@@ -57,6 +67,104 @@ async function saveOrder(eventId, buyerId, tickets, buyerInfo, receipt, insuranc
   ticketDb.doneBuying(eventId, buyerId)//Change isBuying from true to false.
 
   return buyingTicketsResponse
+}
+
+async function handlePayment(paymentOptions, insurance, tickets) {
+  console.log(paymentOptions.method)
+  const price = await calculatePrice(tickets, insurance)
+  if(paymentOptions.method === 'borgun'){
+      return await handleBorgunPayment(price, paymentOptions.Token, insurance)  
+  } else if (paymentOptions.method === 'paypal'){
+    console.log('her')
+      return handlePaypalPayment(price, paymentOptions.orderId, insurance)
+  } else {
+      return SYSTEM_ERROR
+  }
+}
+
+async function calculatePrice(tickets, insurance) {
+  const ticketsPrice = await ticketDb.getTicketsPrice(tickets)
+  console.log(ticketsPrice)
+  if (insurance) {
+      const percentage = await ticketDb.getInsurancePercentage()
+      const insurancePrice = (percentage * ticketsPrice).toFixed(2)
+      return {
+          totalPrice: (insurancePrice + ticketsPrice).toFixed(2),
+          insurancePrice
+      }
+  } else {
+      return { totalPrice: ticketsPrice }
+  }
+}
+
+
+/**
+ * paymentOptions: {
+ *      method: String ('borgun' || 'paypal')
+ *      Token: String (only if method is borgun)
+ *      orderId: String (only if method is paypal)
+ * }
+ * 
+ */
+async function handleBorgunPayment(price, Token, insurance){
+  const orderId = crypto.randomBytes(6).toString('hex').toUpperCase()
+
+  const borgunResult = await fetch('someapihere and private key', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      data: JSON.stringify({
+          TransactionType: 'Sale',
+          Amount: price.totalPrice,
+          Currency: '840', //usd
+          TransactionDate: new Date().toISOString(),
+          OrderId: orderId,
+          PaymentMethod: {
+              PaymentType: 'TokenSingle',
+              Token: Token
+          },
+          Metadata: insurance ? {
+              insurancePrice: price.insurancePrice
+          } : {}
+      })
+  })
+
+  const borgunData = await borgunResult.json()
+}
+
+
+
+async function handlePaypalPayment(price, orderId, insurance){
+  console.log('inside handlepaypal')
+  // 3. Call PayPal to get the transaction details
+  let request = new checkoutNodeJssdk.orders.OrdersGetRequest(orderId);
+
+  let order
+  try {
+    order = await paypalClient.client().execute(request);
+  } catch (err) {
+
+    // 4. Handle any errors from the call
+    console.error(err);
+    return SYSTEM_ERROR
+  }
+console.log(order)
+  // 5. Validate the transaction details are as expected
+  console.log(price)
+  console.log(order.result.purchase_units[0].amount.value)
+  if (order.result.purchase_units[0].amount.value !== parseInt(price.totalPrice).toFixed(2)) {
+    return BAD_REQUEST('You did not pay the expected amount')
+  }
+
+  // 6. Save the transaction in your database
+  // await database.saveTransaction(orderID);
+
+  // 7. Return a successful response to the client
+  console.log('ekki villa i handlepaypal')
+  return {success: true, price: order.result.purchase_units[0].amount.value};
+
 }
 
 throng({ workers, start })
