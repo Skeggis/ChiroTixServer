@@ -84,8 +84,6 @@ const TAGS_IDS = [1, 2, 3]
 
 const RECEIPT = {}
 
-const RECEIPT = {}
-
 
 module.exports = {
     OLD_SPEAKERS,

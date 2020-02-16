@@ -10,6 +10,9 @@ CREATE OR replace view eventsinfo AS
     events.cecredits as cecredits,
     events.schedule as schedule,
     events.ticketstablename as ticketstablename,
+    events.isvisible as isvisible,
+    events.issoldout as issoldout,
+    events.isselling as isselling,
 
     organizations.name AS organization,
     countries.name AS country,
@@ -20,10 +23,11 @@ CREATE OR replace view eventsinfo AS
     tickets.name AS ticketname,
     tickets.ownerinfo AS ownerinfo,
 
-
+    tickets.amount as amount,
+    tickets.sold as sold
 
 FROM events
-    INNER JOIN tickets ON tickets.eventid=events.id
+    INNER JOIN tickets ON tickets.eventid=events.id and not tickets.disabled
     INNER JOIN cities ON events.cityid = cities.id
     INNER JOIN countries ON cities.countryid = countries.id
     INNER JOIN organizations ON organizations.id = events.organizationid;

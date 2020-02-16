@@ -2,8 +2,7 @@ require('dotenv').config()
 const router = require('express').Router()
 const crypto = require('crypto')
 const ticketHandler = require('../handlers/ticketHandler')
-const { BAD_REQUEST } = require('../Messages')
-
+const { BAD_REQUEST, SYSTEM_ERROR } = require('../Messages')
 const { catchErrors } = require('../helpers')
 
 
@@ -13,10 +12,8 @@ async function eventInfo(req, res) {
     if (!eventId) { return res.json(BAD_REQUEST("Invalid body request.")) }
 
     let responseData = await ticketHandler.getEventInfoWithTicketTypes(eventId)
-    if (!responseData) { return res.json(BAD_REQUEST('No event with this id')) }
-
-    responseData.success = true
-    responseData.buyerId = crypto.randomBytes(20).toString('hex')
+    if(responseData.success){responseData.buyerId = crypto.randomBytes(20).toString('hex')}
+    
     res.json(responseData)
 }
 
@@ -118,6 +115,7 @@ async function buyTickets(req, res) {
         }
     } = req
 
+    //TODO: Validate paymentOptionsEtc.
     if (!(buyerId && eventId && tickets && buyerInfo && socketId)) { return res.json(BAD_REQUEST("Invalid body request.")) }
     if (tickets.length === 0) { return res.json(BAD_REQUEST("Invalid amount of tickets. Zero tickets not allowed.")) }
 
@@ -136,13 +134,22 @@ async function buyTickets(req, res) {
         paymentOptions
     }
 
-    var response = await ticketHandler.buyTickets(data)
-    res.json(response)
+    var response = {}
+    try {
+        response = await ticketHandler.buyTickets(data)
+    } catch (error) {
+        console.log("Error Buying tickets", error)
+        response = SYSTEM_ERROR()
+    }
 
     if (response.success) {
+        console.log("SUCCESS??")
         let io = req.app.get('io')
         if (io && io.sockets.connected[socketId] && !process.env.TEST) { clearTimeout(io.sockets.connected[socketId].timeOut) }
     }
+
+    console.log("Responding with:", response)
+    res.json(response)
 }
 
 

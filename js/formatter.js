@@ -44,7 +44,8 @@ async function formatTicketType(ticket){
         amount: ticket.amount,
         sold: ticket.sold,
         reserved: ticket.reserved,
-        date: ticket.date
+        date: ticket.date,
+        disabled: ticket.disabled
     }
 }
 
@@ -106,6 +107,10 @@ async function formatEventFromEventsTable(event){
         CECredits: event.cecredits,
         insertDate: event.insertdate,
 
+        isVisible: event.isvisible,
+        isSoldOut: event.issoldout,
+        isSelling: event.isselling,
+
         dateRange: getDateRange(event.startdate, event.enddate)
     }
 }
@@ -126,6 +131,9 @@ async function formatEventInfoView(rows){
         longitude: rows[0].longitude,
         CECredits: rows[0].cecredits,
         ticketsTableName: rows[0].ticketstablename,
+        isSoldOut: rows[0].issoldout,
+        isSelling: rows[0].isselling,
+        isVisible: rows[0].isvisible
     }
 
     let {dates, newSchedule} = await formatSchedule(rows[0].schedule)
@@ -141,7 +149,8 @@ async function formatEventInfoView(rows){
             price: parseFloat(rows[i].ticketprice).toFixed(2),
             name: rows[i].ticketname,
             amount: 0,
-            ownerInfo: rows[i].ownerinfo
+            ownerInfo: rows[i].ownerinfo,
+            isSoldOut: rows[i].amount >= rows[i].sold
         }) 
         if(rows[i].ticketprice < lowPrice){lowPrice = rows[i].ticketprice}
         if(rows[i].ticketprice > maxPrice){maxPrice = rows[i].ticketprice}
@@ -164,7 +173,7 @@ function getDateRange(startDate, endDate){
     return `${start.getDate()}.${start.getMonth()+1}.${start.getFullYear()%100} - ${end.getDate()}.${end.getMonth()+1}.${end.getFullYear()%100}`
 }
 
-function formatSearchEvent(event){
+async function formatSearchEvent(event){
     return {
         id: event.eventid,
         name: event.name,
@@ -193,15 +202,21 @@ function formatSearchEvent(event){
         CECredits: event.cecredits,
         categoryId: event.categoryid,
         featuredNr: event.featurednr,
-        textSearchableIndexCol: event.textsearchable_index_col,
         image: event.image,
-        shortDescription: event.shortdescription
+        shortDescription: event.shortdescription,
+
+        isSelling: event.isselling,
+        isVisible: event.isvisible,
+        isSoldOut: event.issoldout
     }
 }
 
-function formatSearchEvents(events){
+async function formatSearchEvents(events){
     let newEvents = []
-    events.map(event => newEvents.push(formatSearchEvent(event)))
+    for(let i = 0; i < events.length; i++){
+        let event = events[i]
+        newEvents.push(await formatSearchEvent(event))
+    }
     return newEvents
 }
 
