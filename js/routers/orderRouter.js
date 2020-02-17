@@ -8,7 +8,7 @@ const {
 async function getOrderRoute(req,res){
   const orderId = req.params.orderId
   const result = await getOrder(orderId)
-
+  console.log(result)
     return res.status(200).json(result)
   
 

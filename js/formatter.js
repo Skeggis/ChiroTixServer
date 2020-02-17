@@ -265,7 +265,7 @@ async function formatOrderDetails(details){
         buyerInfo: details.buyerinfo,
         buyerId: details.buyerid,
         date: details.date,
-        orderNr: details.ordernr
+        orderNr: details.ordernr,
     }
 }
 

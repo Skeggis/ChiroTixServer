@@ -52,7 +52,7 @@ async function getEventInfoWithTicketTypes(eventId) {
  * 
  * @param {JSON} receipt : {}
  */
-async function buyTickets(eventId, buyerId, tickets, buyerInfo, receipt, insurance) {
+async function buyTickets(eventId, buyerId, tickets, buyerInfo, receipt, insurance, insurancePrice) {
     let message = {
         success: false,
         messages: []
@@ -69,10 +69,11 @@ async function buyTickets(eventId, buyerId, tickets, buyerInfo, receipt, insuran
         //get the order id by incrementing the latest entry
         const lastOrderNr = await client.query(`select ordernr from ${DB_CONSTANTS.ORDERS_DB} where date = (select max(date) from ${DB_CONSTANTS.ORDERS_DB})`)
         const newOrdrerNr = lastOrderNr.rows[0].ordernr + 1
-
+        console.log('receipt: ', receipt)
+        console.log('stringified receipt: ', JSON.stringify(receipt))
         //Insert into the orders table
-        const ordersQuery = `insert into ${DB_CONSTANTS.ORDERS_DB} (orderid, eventid, receipt, tickets, insurance, buyerinfo, buyerid, ordernr)
-                values ($1, $2, $3, $4, $5, $6, $7, $8) returning *`
+        const ordersQuery = `insert into ${DB_CONSTANTS.ORDERS_DB} (orderid, eventid, receipt, tickets, insurance, buyerinfo, buyerid, ordernr, insuranceprice)
+                values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning *`
         const orderInsertResult = await client.query(ordersQuery,
             [crypto.randomBytes(6).toString('hex').toUpperCase(), //todo: insert orderid from receipt
                 eventId,
@@ -81,7 +82,8 @@ async function buyTickets(eventId, buyerId, tickets, buyerInfo, receipt, insuran
                 insurance,
             JSON.stringify(buyerInfo),
                 buyerId,
-                newOrdrerNr
+                newOrdrerNr,
+                parseFloat(insurancePrice)
             ])
         const orderDetails = await formatter.formatOrderDetails(orderInsertResult.rows[0])
 
