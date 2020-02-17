@@ -5,7 +5,7 @@ create table orders(
   receipt jsonb default '{}',
   tickets jsonb default '{}',
   insurance boolean,
-  insuranceprice integer,
+  insuranceprice decimal,
   buyerinfo jsonb default '{}',
   buyerid text,
   ordernr integer unique,

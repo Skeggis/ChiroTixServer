@@ -27,6 +27,7 @@ function start() {
     if(!paymentResult.success){
         return {result: paymentResult, socketId: data.socketId}
     }
+    console.log(job.ticketTypes)
 
     let receipt = {
       cardNumber: '7721',
@@ -36,10 +37,10 @@ function start() {
       address: 'Álfaberg 24',
       place: '221, Hafnarfjörður',
       country: 'Iceland',
-      lines: job.ticketTypes
+      lines: data.ticketTypes
   }
 
-    const result = await saveOrder(data.eventId, data.buyerId, data.tickets, data.buyerInfo, receipt, data.insurance, data.insurancePrice)
+    const result = await saveOrder(data.eventId, data.buyerId, data.tickets, data.buyerInfo, receipt, data.insurance, paymentResult.insurancePrice)
 
     return { result, socketId: data.socketId }
   })
@@ -168,7 +169,7 @@ async function handlePaypalPayment(price, orderId, insurance){
 
   // 7. Return a successful response to the client
   console.log('ekki villa i handlepaypal')
-  return {success: true, price: order.result.purchase_units[0].amount.value};
+  return {success: true, price: order.result.purchase_units[0].amount.value, insurancePrice: price.insurancePrice};
 
 }
 
