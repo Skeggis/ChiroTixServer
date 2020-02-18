@@ -148,7 +148,6 @@ async function formatEventInfoView(rows){
     let lowPrice = Infinity
     let maxPrice = 0
     for(let i = 0; i < rows.length; i++){
-        console.log(rows[i].amount, rows[i].sold)
         ticketTypes.push({
             id: rows[i].tickettypeid,
             price: parseFloat(rows[i].ticketprice).toFixed(2),

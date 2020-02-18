@@ -1,4 +1,7 @@
-function createReceiptEmail(link){
+require('dotenv').config()
+function createReceiptEmail(link, orderNr, eventName, ownerName, amountOfTickets, price){
+  let chiroTixEmail = process.env.CHIROTIX_EMAIL
+  let chiroTixUrl = process.env.CHIROTIX_URL
   return `
   <!doctype html>
   <html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
@@ -92,10 +95,11 @@ function createReceiptEmail(link){
             <td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;">
         <![endif]-->
       <div style="background:#4287f5;background-color:#4287f5;margin:0px auto;max-width:600px;">
+          <h1 style="font-family:Ubuntu, Helvetica, Arial, sans-serif;padding:10px 0 0 5px;font-size:20px;font-weight:200;line-height:1;color:white;"">Order #${orderNr}</h1>
         <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background:#4287f5;background-color:#4287f5;width:100%;">
           <tbody>
             <tr>
-              <td style="direction:ltr;font-size:0px;padding:20px 0;text-align:center;">
+              <td style="direction:ltr;font-size:0px;padding:0 0 20px 0;text-align:center;">
                 <!--[if mso | IE]>
                     <table role="presentation" border="0" cellpadding="0" cellspacing="0">
                   
@@ -154,12 +158,43 @@ function createReceiptEmail(link){
                 <div class="mj-column-per-100 mj-outlook-group-fix" style="font-size:0px;text-align:left;direction:ltr;display:inline-block;vertical-align:top;width:100%;">
                   <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="vertical-align:top;" width="100%">
                     <tr>
-                      <td align="center" style="font-size:0px;padding:10px 25px;padding-top:50px;word-break:break-word;">
+                      <td align="center" style="font-size:0px;padding:10px 25px 0 25px;padding-top:50px;word-break:break-word;">
                         <div style="font-family:Roboto;font-size:32px;font-weight:300;line-height:1;text-align:center;color:#000000;">Thanks for the order</div>
                       </td>
                     </tr>
+                    <tr>
+                        <td align="center" style="font-size:0px;padding:0 25px 0 25px;padding-top:40px;word-break:break-word;">
+                            <div style="font-family:Roboto;font-size:16px;font-weight:200;line-height:1;text-align:left;color:#000000;">Please save this email and the order number above!</div>
+                          </td>
+                    </tr>
+                    <tr>
+                        <td align="center" style="font-size:0px;padding:0 25px 10px 25px;padding-top:15px;word-break:break-word;">
+                            <div style="display:flex;flex-direction:column;align-items:flex-start;">
+                                <div style="display:flex;flex-direction:row;width: 100%;margin:0;height:30px;">
+                                    <h3 style="font-family:Roboto;font-size:16px;font-weight:500;text-align:left;color:#000000;margin-bottom:0">Event:</h3>
+                                    <h3 style="font-family:Roboto;font-size:16px;font-weight:300;text-align:left;color:#000000;margin-left:5px;">${eventName}</h3>
+                                </div>
+                                <div style="display:flex;flex-direction:row;width: 100%;margin:0;height:30px;">
+                                    <h3 style="font-family:Roboto;font-size:16px;font-weight:500;text-align:left;color:#000000;margin-bottom:0">Owner:</h3>
+                                    <h3 style="font-family:Roboto;font-size:16px;font-weight:300;text-align:left;color:#000000;margin-left:5px;">${ownerName}</h3>
+                                </div>
+                                <div style="display:flex;flex-direction:row;width: 100%;margin:0;height:30px;">
+                                    <h3 style="font-family:Roboto;font-size:16px;font-weight:500;text-align:left;color:#000000;margin-bottom:0">Amount of tickets:</h3>
+                                    <h3 style="font-family:Roboto;font-size:16px;font-weight:300;text-align:left;color:#000000;margin-left:5px;">${amountOfTickets}</h3>
+                                </div>
+                                <div style="display:flex;flex-direction:row;width: 100%;margin:0;height:30px;">
+                                    <h3 style="font-family:Roboto;font-size:16px;font-weight:500;text-align:left;color:#000000;margin-bottom:0">Amount:</h3>
+                                    <h3 style="font-family:Roboto;font-size:16px;font-weight:300;text-align:left;color:#000000;margin-left:5px;">${price} $</h3>
+                                </div>
+                                </div>
+                            </div>
+                        </td>
+                        
+                    </tr>
+
                   </table>
                 </div>
+
                 <!--[if mso | IE]>
               </td>
             
@@ -187,7 +222,7 @@ function createReceiptEmail(link){
         <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background:white;background-color:white;width:100%;">
           <tbody>
             <tr>
-              <td style="direction:ltr;font-size:0px;padding:20px 0;padding-bottom:80px;text-align:center;">
+              <td style="direction:ltr;font-size:0px;padding:0px 0 20px 0;padding-bottom:25px;text-align:center;">
                 <!--[if mso | IE]>
                     <table role="presentation" border="0" cellpadding="0" cellspacing="0">
                   
@@ -239,8 +274,13 @@ function createReceiptEmail(link){
       <div style="background:lightgrey;background-color:lightgrey;margin:0px auto;max-width:600px;">
         <table align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="background:lightgrey;background-color:lightgrey;width:100%;">
           <tbody>
+              <tr>      
+                  <div style="padding-top:20px;background:lightgrey;background-color:lightgrey;margin:0px auto;max-width:500px; color:black">
+                You have received this email because of a purchase of tickets through the website <a style="color:blue" href="${chiroTixUrl}">${chiroTixUrl}</a>, if you do not recognise this purchase as your own please forward this email to <a style="color:blue" href="${chiroTixEmail}">${chiroTixEmail}</a>.
+                </div>
+            </tr>
             <tr>
-              <td style="direction:ltr;font-size:0px;padding:20px 0;padding-top:80px;text-align:center;">
+              <td style="direction:ltr;font-size:0px;padding:20px 0;padding-top:20px;text-align:center;">
                 <!--[if mso | IE]>
                     <table role="presentation" border="0" cellpadding="0" cellspacing="0">
                   
@@ -263,6 +303,7 @@ function createReceiptEmail(link){
           </tbody>
         </table>
       </div>
+
       <!--[if mso | IE]>
             </td>
           </tr>

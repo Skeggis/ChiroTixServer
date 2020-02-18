@@ -125,7 +125,9 @@ async function buyTickets(eventId, buyerId, tickets, buyerInfo, receipt, insuran
         }
 
         const chiroInfoResult = await client.query(`select receiptinfo from ${DB_CONSTANTS.CHIRO_TIX_SETTINGS_DB}`)
-        const chiroInfo = chiroInfoResult.rows[0].receiptinfo
+        const ticketTermsTitle = chiroInfoResult.rows[0].ticketstermstitle
+        const ticketTermsText = chiroInfoResult.rows[0].ticketstermstext
+        const receiptInfo = chiroInfoResult.rows[0].receiptinfo
 
         await client.query('COMMIT')
 
@@ -133,7 +135,7 @@ async function buyTickets(eventId, buyerId, tickets, buyerInfo, receipt, insuran
         message.orderDetails = orderDetails
         message.eventInfo = eventInfo
         message.success = true
-        message.chiroInfo = chiroInfo
+        message.chiroInfo = {receiptInfo, ticketTermsTitle, ticketTermsText}
         delete message.messages
     } catch (e) {
         await client.query('ROLLBACK')

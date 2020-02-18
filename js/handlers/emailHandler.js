@@ -13,7 +13,7 @@ const config = {
 
 };
 
-async function sendReceiptMail(link, from, to, subject, attachmentBuffer) {
+async function sendReceiptMail(link, from, to, subject, attachmentBuffer, orderDetails) {
   // create a nodemailer transporter using smtp
   let transporter = nodemailer.createTransport(config.mailserver);
 
@@ -21,7 +21,7 @@ async function sendReceiptMail(link, from, to, subject, attachmentBuffer) {
     from: from,
     to: to,
     subject: subject,
-    html: createReceiptEmail(link),
+    html: createReceiptEmail(link, orderDetails.orderNr, orderDetails.eventName, orderDetails.buyerInfo.name, orderDetails.tickets.length, orderDetails.price),
     attachments:[{
       filename:"tickets.pdf",
       content: attachmentBuffer
