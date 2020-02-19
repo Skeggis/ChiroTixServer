@@ -1,5 +1,5 @@
 @page {
-    size: 1200px 1900px;
+    size: 1200px 1500px;
     margin: 0;
     padding: 0;
     display: block;
@@ -12,7 +12,7 @@ html, body{
 }
 
 .ticket{
-    height: 1900px;
+    height: 1500px;
 }
 
 .themeColor{
@@ -33,13 +33,14 @@ html, body{
     flex-direction: row;
     align-items: center;
     height: 40px;
-    margin: 10px 25px 10px 25px;
+    margin: 10px 25px 7px 25px;
     justify-content: space-between;
     margin-top: 0;
+    padding: 5px;
 }
 
 .orderNr{
-    font-size: 19px;
+    font-size: 25px;
 }
 
 .ticketDiv {
@@ -56,48 +57,58 @@ html, body{
     display: flex;
     flex-direction: row;
     justify-content: space-between;
-    margin-bottom: 75px;
+    margin-bottom: 60px;
 }
 
 .eventName{
     margin: 0;
+    margin-top: 5px;
+    font-size: 50px;
 }
-
-.ceCredits{ margin-top: 10px; }
 
 .organization{
     margin: 0;
+    font-size: 30px;
 }
 
 .informationGrid{
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    grid-gap: 50px 0;
+    grid-template-columns: 2fr 1fr 1fr;
+    grid-gap: 50px 5px;
+    margin: 0;
+    margin-left: 25px;
 }
 
 .informationDiv{
     display: flex;
     flex-direction: column;
+    margin: 0;
 }
 
 .informationTitle{
-    font-size: 30px;
+    font-size: 35px;
     padding: 0;
     margin: 0;
     margin-bottom: 10px;
 }
 
+
 .informationSub{
     margin: 0 0 7px 15px;
     padding: 0;
     font-weight: bold;
-    font-size: 17px;
+    font-size: 25px;
+}
+
+.grid{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
 }
 
 .informationSubSub{
     margin: 0 0 0 20px;
     padding: 0;
-    font-size: 15px;
+    font-size: 23px;
 }
 
 .line {
@@ -113,10 +124,12 @@ html, body{
 }
 
 .termsTitle{
+    font-size: 38px;
     margin-bottom: 45px;
 }
 
 .termsText{
     margin-left: 10px;
     line-height: 25px;
+    font-size: 23px;
 }

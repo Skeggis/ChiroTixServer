@@ -19,11 +19,12 @@ function sleep(ms) {
 function start() {
   console.log('worker start')
   let workQueue = new Queue('work', REDIS_URL)
-
+console.log("THERE")
   workQueue.process(maxJobsPerWorker, async (job) => {
     const data = job.data
       //job.progress(progress)
     const paymentResult = await handlePayment(data.paymentOptions, data.insurance, data.tickets)
+    console.log("MERE")
     if(!paymentResult.success){
         return {result: paymentResult, socketId: data.socketId}
     }
@@ -39,9 +40,9 @@ function start() {
       country: 'Iceland',
       lines: data.ticketTypes
   }
-
+console.log("SAVEIT")
     const result = await saveOrder(data.eventId, data.buyerId, data.tickets, data.buyerInfo, receipt, data.insurance, paymentResult.insurancePrice)
-
+console.log("SAVED")
     return { result, socketId: data.socketId }
   })
 }
@@ -51,17 +52,19 @@ async function saveOrder(eventId, buyerId, tickets, buyerInfo, receipt, insuranc
   const buyingTicketsResponse = await ticketDb.buyTickets(eventId, buyerId, tickets, buyerInfo, receipt, insurance, insurancePrice)
   if (!buyingTicketsResponse.success) { return buyingTicketsResponse }
   console.log('her2')
-  let createPDFResponse = await createTicketsPDF({ eventInfo: buyingTicketsResponse.eventInfo, tickets: buyingTicketsResponse.boughtTickets })
+  let createPDFResponse = await createTicketsPDF({ eventInfo: buyingTicketsResponse.eventInfo, orderDetails:buyingTicketsResponse.orderDetails, chiroInfo: buyingTicketsResponse.chiroInfo })
   let pdfBuffer;//TODO: handle if pdf creation fails.
   if (createPDFResponse.success) { pdfBuffer = createPDFResponse.buffer }
   console.log('her3')
   const orderId = buyingTicketsResponse.orderDetails.orderId
+  orderDetails.eventName = buyingTicketsResponse.eventInfo.name
   await sendReceiptMail(
       `${WEBSITE_URL}/orders/${orderId}`,
       'noreply@chirotix.com',
       buyingTicketsResponse.orderDetails.buyerInfo.email,
       'ChiroTix order',
-      pdfBuffer
+      pdfBuffer,
+      buyingTicketsResponse.orderDetails
   )
   console.log('emailSent')
 

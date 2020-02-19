@@ -6,7 +6,7 @@
 <body>
     <div class="ticket">
         <div class="aboveTicketDiv">
-            <h4 class="orderNr">OrderNr: #{{../eventInfo.orderNr}}</h4>
+            <h4 class="orderNr">OrderNr: #{{../orderNr}}</h4>
             <div class="logoDiv">
                 <h2 class="logo">LOGO</h2>
             </div>
@@ -40,9 +40,11 @@
                 <div class="informationDiv">
                     <h3 class="informationTitle themeColor skinny">Dates:</h3>
                     <h4 class="informationSub">{{../eventInfo.dates}}</h4>
-                    {{#../eventInfo.schedule}}
-                    <h4 class="informationSubSub skinny">{{this}}</br></h4>
-                    {{/../eventInfo.schedule}}
+                    <div class="grid">
+                        {{#../eventInfo.schedule}}
+                        <h4 class="informationSubSub skinny">{{this}}</br></h4>
+                        {{/../eventInfo.schedule}}
+                    </div>
 
                 </div>
 
@@ -60,8 +62,8 @@
         <div class="line"></div>
 
         <div class="termsDiv">
-            <h1 class="termsTitle themeColor skinny">{{this.termsTitle}}</h1>
-            <p class="termsText">{{this.termsText}}</p>
+            <h1 class="termsTitle themeColor skinny">{{../chiroInfo.ticketTermsTitle}}</h1>
+            <p class="termsText">{{../chiroInfo.ticketTermsText}}</p>
         </div>
     </div>
 
@@ -71,4 +73,4 @@
 
 </html>
 
-    {{/tickets}}
+{{/tickets}}
