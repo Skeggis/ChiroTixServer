@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const passport = require('passport');
+const path = require('path')
 var cors = require('cors')
 
 const {connectSocket} = require('./js/socket')
@@ -32,13 +33,27 @@ app.use(express.json());
 require('./js/passport')(passport);
 app.use(passport.initialize());
 
-app.use(searchRouter)
-app.use(eventRouter)
-app.use(tagsRouter)
-app.use(ticketRouter)
-app.use(orderRouter)
-app.use(userRouter)
-app.use(adminRouter)
+if(process.env.PRODUCTION === 'true'){
+  app.disable('x-powered-by')
+  app.use(express.static(path.resolve(__dirname, 'client/build')))
+  app.get('*', (req,res, next)=>{
+    if(req.path.match(/^\/api\//)){
+      next()
+    } else {
+      console.log("HERE?")
+      res.sendFile(path.resolve(__dirname,'client/build', 'index.html'))
+    }
+  })
+}
+
+app.use('/api',searchRouter)
+app.use('/api',eventRouter)
+app.use('/api',tagsRouter)
+app.use('/api',ticketRouter)
+app.use('/api',orderRouter)
+app.use('/api',userRouter)
+app.use('/api',adminRouter)
+
 app.use(notFoundHandler)
 app.use(errorHandler)
 
