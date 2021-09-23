@@ -1,12 +1,14 @@
-const SYSTEM_ERROR = {
+const SYSTEM_ERROR =  () => {
+  return {
     success: false, 
     messages:[  {type: "Error", message:"System error. Please try again later."} ]
   }
+}
 
-const BAD_REQUEST = (message) => {
+const BAD_REQUEST = (message, title="Error!") => {
   return {
     success: false,
-    messages: [{type: "Error", message:message}]
+    messages: [{type: "Error", message:message, title:title}],
   }
 }
 

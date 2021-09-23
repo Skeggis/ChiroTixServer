@@ -1,4 +1,24 @@
 require('dotenv').config()
+
+const DB_CONSTANTS = {
+  TAGS_DB,
+  TAGS_CONNECT_DB,
+  EVENTS_DB,
+  SPEAKERS_DB,
+  SPEAKERS_CONNECT_DB,
+  ORGANIZATIONS_DB,
+  CATEGORIES_DB,
+  SEARCH_EVENTS_DB,
+  CITIES_DB,
+  COUNTRIES_DB,
+  EVENTS_INFO_VIEW,
+  ORDERS_DB,
+  CHIRO_TIX_SETTINGS_DB,
+  USERS_DB,
+  TICKETS_TYPE_DB,
+} = process.env;
+const HOST_URL = process.env.HOST_URL
+
 /**
 * @param {function} fn - Async function to be wrapped into an error catching function.
 *
@@ -13,8 +33,6 @@ function notFoundHandler(req, res, next) {
   res.status(404).json({ error: 'Not found' });
 }
 
-
-
 function errorHandler(err, req, res, next) { 
   console.error(err);
 
@@ -22,7 +40,7 @@ function errorHandler(err, req, res, next) {
     return res.status(400).json({ error: 'Invalid json' });
   }
 
-  return res.status(500).json({ error: 'Internal server error' });
+  return res.status(500).json({ success:false,error: 'Internal server error' });
 }
 
 function isValidDate(d){
@@ -30,20 +48,7 @@ function isValidDate(d){
 }
 
 
-const DB_CONSTANTS = {
-  TAGS_DB,
-  TAGS_CONNECT_DB,
-  EVENTS_DB,
-  SPEAKERS_DB,
-  SPEAKERS_CONNECT_DB,
-  LOCATIONS_DB,
-  ORGANIZATIONS_DB,
-  CATEGORIES_DB,
-  SEARCH_EVENTS_DB,
-  CITIES_DB,
-  COUNTRIES_DB,
-  EVENTS_INFO_VIEW
-} = process.env;
+
 
 
 
@@ -52,5 +57,6 @@ module.exports = {
   notFoundHandler,
   errorHandler,
   isValidDate,
-  DB_CONSTANTS
+  DB_CONSTANTS,
+  HOST_URL
 }

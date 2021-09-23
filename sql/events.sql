@@ -1,6 +1,7 @@
 create table events (
   id SERIAL PRIMARY KEY,
   name VARCHAR(255),
+  schedule jsonb[],
   startdate TIMESTAMPTZ,
   enddate TIMESTAMPTZ,
   shortdescription TEXT,
@@ -15,8 +16,11 @@ create table events (
   startsellingtime TIMESTAMPTZ,
   finishsellingtime TIMESTAMPTZ,
   cecredits Int,
-  ownerinfo JSONB[], --The info necessery for the buyer to insert for each ticket bought (for each owner of a ticket he buys)
-  insertDate TIMESTAMPTZ default current_timestamp
+  insertDate TIMESTAMPTZ default current_timestamp,
+
+  isselling boolean default true,
+    isvisible boolean default true,
+    issoldout boolean default false
 );
 
 -- CREATE view searchevents AS

@@ -2,7 +2,7 @@
  * This module hosts common database functions, e.g. run a query.
  */
 
- 
+
 
 const { Client } = require('pg');
 
@@ -17,8 +17,18 @@ const { Client } = require('pg');
  */
 async function query(sqlQuery, values = []) {
   const connectionString = process.env.DATABASE_URL;
-
-  const client = new Client({ connectionString });
+  var rest = {}
+  if (process.env.PRODUCTION || process.env.STAGING) {
+    rest = {
+      ssl: {
+        rejectUnauthorized: false
+      }
+    }
+  }
+  const client = new Client({
+    connectionString,
+     ...rest
+  });
   await client.connect();
 
   let result;

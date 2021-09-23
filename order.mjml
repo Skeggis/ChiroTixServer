@@ -1,0 +1,32 @@
+<mjml>
+  <mj-head>
+
+  </mj-head>
+  <mj-body>
+    <mj-section background-color="#4287f5">
+      <mj-column>
+        <mj-text color="white" align="center" font-weight="300" font-size="42px">
+          ChiroTix
+        </mj-text>
+      </mj-column>
+    </mj-section>
+    <mj-section background-color="white">
+      <mj-column>
+        <mj-text align="center" padding-top="50px" font-family="Roboto" font-size="32px" font-weight="300">
+          Thanks for the order
+        </mj-text>
+      </mj-column>
+    </mj-section>
+    <mj-section background-color="white" padding-bottom="80px">
+      <mj-column>
+        <mj-button line-height="32px" href="#" border-radius="5px" border="2px solid #4287f5" color="black" background-color="white" height="30px" css-class="button">
+          Reciept
+        </mj-button>
+      </mj-column>
+    </mj-section>
+    <mj-section background-color='lightgrey' padding-top="100px">
+
+    </mj-section>
+
+  </mj-body>
+</mjml>
